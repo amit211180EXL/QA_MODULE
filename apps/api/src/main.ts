@@ -39,10 +39,7 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // Global interceptors
-  app.useGlobalInterceptors(
-    new RequestIdInterceptor(),
-    new LoggingInterceptor(),
-  );
+  app.useGlobalInterceptors(new RequestIdInterceptor(), new LoggingInterceptor());
 
   // Swagger (non-production only)
   if (env.NODE_ENV !== 'production') {

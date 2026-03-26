@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsString,
-  IsEnum,
-  IsOptional,
-  MinLength,
-} from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsOptional, MinLength } from 'class-validator';
 import { UserRole, UserStatus } from '@qa/shared';
 
 export class InviteUserDto {

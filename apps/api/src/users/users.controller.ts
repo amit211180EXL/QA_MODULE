@@ -36,11 +36,7 @@ export class UsersController {
   @Post('invite')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Invite a new user' })
-  async invite(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: InviteUserDto,
-    @Req() req: Request,
-  ) {
+  async invite(@CurrentUser() user: JwtPayload, @Body() dto: InviteUserDto, @Req() req: Request) {
     const result = await this.usersService.inviteUser(user.tenantId, dto, user);
     return buildResponse(result, (req as unknown as Record<string, string>)['requestId']);
   }
@@ -48,11 +44,7 @@ export class UsersController {
   @Get(':id')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user by ID' })
-  async getOne(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-    @Req() req: Request,
-  ) {
+  async getOne(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Req() req: Request) {
     const result = await this.usersService.getUser(user.tenantId, id);
     return buildResponse(result, (req as unknown as Record<string, string>)['requestId']);
   }
@@ -74,10 +66,7 @@ export class UsersController {
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Deactivate user (soft delete)' })
-  async deactivate(
-    @CurrentUser() user: JwtPayload,
-    @Param('id') id: string,
-  ) {
+  async deactivate(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
     await this.usersService.deactivateUser(user.tenantId, id);
   }
 }

@@ -29,9 +29,21 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Conversations', href: '/conversations', icon: MessageSquare },
   { label: 'QA Queue', href: '/qa-queue', icon: CheckSquare, roles: [UserRole.QA, UserRole.ADMIN] },
-  { label: 'Verifier Queue', href: '/verifier-queue', icon: ShieldCheck, roles: [UserRole.VERIFIER, UserRole.ADMIN], disabled: true },
+  {
+    label: 'Verifier Queue',
+    href: '/verifier-queue',
+    icon: ShieldCheck,
+    roles: [UserRole.VERIFIER, UserRole.ADMIN],
+    disabled: true,
+  },
   { label: 'Forms', href: '/forms', icon: FileText, roles: [UserRole.ADMIN] },
-  { label: 'Analytics', href: '/analytics', icon: BarChart2, roles: [UserRole.ADMIN], disabled: true },
+  {
+    label: 'Analytics',
+    href: '/analytics',
+    icon: BarChart2,
+    roles: [UserRole.ADMIN],
+    disabled: true,
+  },
   { label: 'Users', href: '/users', icon: Users, roles: [UserRole.ADMIN] },
   { label: 'LLM Settings', href: '/settings/llm', icon: Settings, roles: [UserRole.ADMIN] },
 ];
@@ -41,9 +53,7 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const role = user?.role as UserRole;
 
-  const visibleItems = NAV_ITEMS.filter(
-    (item) => !item.roles || item.roles.includes(role),
-  );
+  const visibleItems = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
 
   return (
     <aside className="flex h-full w-60 flex-col border-r border-gray-200 bg-white">
@@ -72,9 +82,7 @@ export function Sidebar() {
                 >
                   <item.icon className="h-4 w-4 flex-shrink-0" />
                   {item.label}
-                  {item.disabled && (
-                    <span className="ml-auto text-xs text-gray-400">Soon</span>
-                  )}
+                  {item.disabled && <span className="ml-auto text-xs text-gray-400">Soon</span>}
                 </Link>
               </li>
             );

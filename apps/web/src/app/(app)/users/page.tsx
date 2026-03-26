@@ -54,9 +54,24 @@ function InviteModal({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <h3 className="mb-4 text-lg font-semibold text-gray-900">Invite team member</h3>
-        <form onSubmit={handleSubmit((d) => inviteMutation.mutate(d))} noValidate className="space-y-4">
-          <Input label="Email" type="email" placeholder="user@company.com" error={errors.email?.message} {...register('email')} />
-          <Input label="Name" placeholder="Jane Smith" error={errors.name?.message} {...register('name')} />
+        <form
+          onSubmit={handleSubmit((d) => inviteMutation.mutate(d))}
+          noValidate
+          className="space-y-4"
+        >
+          <Input
+            label="Email"
+            type="email"
+            placeholder="user@company.com"
+            error={errors.email?.message}
+            {...register('email')}
+          />
+          <Input
+            label="Name"
+            placeholder="Jane Smith"
+            error={errors.name?.message}
+            {...register('name')}
+          />
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Role</label>
             <select
@@ -68,10 +83,16 @@ function InviteModal({ onClose }: { onClose: () => void }) {
               <option value={UserRole.ADMIN}>Admin</option>
             </select>
           </div>
-          {inviteMutation.isError && <Alert variant="error">Failed to send invite — please try again.</Alert>}
+          {inviteMutation.isError && (
+            <Alert variant="error">Failed to send invite — please try again.</Alert>
+          )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancel</Button>
-            <Button type="submit" isLoading={isSubmitting || inviteMutation.isPending}>Send invite</Button>
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" isLoading={isSubmitting || inviteMutation.isPending}>
+              Send invite
+            </Button>
           </div>
         </form>
       </div>
@@ -95,7 +116,9 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 function RoleBadge({ role }: { role: UserRole }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_STYLES[role]}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ROLE_STYLES[role]}`}
+    >
       {ROLE_LABELS[role]}
     </span>
   );
@@ -124,7 +147,10 @@ function ActionMenu({
             {user.isActive ? (
               <button
                 className="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
-                onClick={() => { onDeactivate(user.id); setOpen(false); }}
+                onClick={() => {
+                  onDeactivate(user.id);
+                  setOpen(false);
+                }}
               >
                 Deactivate
               </button>
@@ -144,7 +170,11 @@ export default function UsersPage() {
   const [showInvite, setShowInvite] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: users = [], isLoading, isError } = useQuery<User[]>({
+  const {
+    data: users = [],
+    isLoading,
+    isError,
+  } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: () => usersApi.list() as unknown as Promise<User[]>,
   });
@@ -171,7 +201,9 @@ export default function UsersPage() {
 
       <div className="mt-6 rounded-xl border border-gray-200 bg-white overflow-hidden">
         {isLoading && (
-          <div className="flex items-center justify-center py-16 text-sm text-gray-500">Loading users…</div>
+          <div className="flex items-center justify-center py-16 text-sm text-gray-500">
+            Loading users…
+          </div>
         )}
         {isError && (
           <div className="p-6">
@@ -182,7 +214,9 @@ export default function UsersPage() {
           <div className="flex flex-col items-center py-16 text-center">
             <UserPlus className="mb-3 h-10 w-10 text-gray-300" />
             <p className="text-gray-500 text-sm">No team members yet</p>
-            <Button className="mt-4" onClick={() => setShowInvite(true)}>Invite your first member</Button>
+            <Button className="mt-4" onClick={() => setShowInvite(true)}>
+              Invite your first member
+            </Button>
           </div>
         )}
         {!isLoading && users.length > 0 && (
@@ -190,7 +224,10 @@ export default function UsersPage() {
             <thead className="bg-gray-50">
               <tr>
                 {['Name', 'Email', 'Role', 'Status', ''].map((col) => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  <th
+                    key={col}
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     {col}
                   </th>
                 ))}
@@ -208,16 +245,29 @@ export default function UsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{user.email}</td>
-                  <td className="px-4 py-3"><RoleBadge role={user.role} /></td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                      user.status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                    }`}>
-                      {user.status === 'ACTIVE' ? 'Active' : user.status === 'INVITED' ? 'Invited' : 'Inactive'}
+                    <RoleBadge role={user.role} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        user.status === 'ACTIVE'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {user.status === 'ACTIVE'
+                        ? 'Active'
+                        : user.status === 'INVITED'
+                          ? 'Invited'
+                          : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <ActionMenu user={{ ...user, isActive: user.status === 'ACTIVE' }} onDeactivate={(id) => deactivateMutation.mutate(id)} />
+                    <ActionMenu
+                      user={{ ...user, isActive: user.status === 'ACTIVE' }}
+                      onDeactivate={(id) => deactivateMutation.mutate(id)}
+                    />
                   </td>
                 </tr>
               ))}

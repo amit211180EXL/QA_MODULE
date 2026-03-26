@@ -50,7 +50,10 @@ export class AuthService {
   async signup(dto: SignupDto) {
     const existing = await this.db.tenant.findUnique({ where: { slug: dto.tenantSlug } });
     if (existing) {
-      throw new ConflictException({ code: 'TENANT_SLUG_TAKEN', message: 'Tenant slug is already taken' });
+      throw new ConflictException({
+        code: 'TENANT_SLUG_TAKEN',
+        message: 'Tenant slug is already taken',
+      });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -106,7 +109,11 @@ export class AuthService {
       console.warn('[Auth] Redis disabled — skipping tenant provision job for', tenant.slug);
     }
 
-    const { accessToken, refreshToken } = await this.issueTokens(admin.id, tenant.id, admin.role as UserRole);
+    const { accessToken, refreshToken } = await this.issueTokens(
+      admin.id,
+      tenant.id,
+      admin.role as UserRole,
+    );
 
     return {
       accessToken,
@@ -129,20 +136,32 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' });
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+      });
     }
 
     if (user.status === 'INACTIVE') {
-      throw new ForbiddenException({ code: 'ACCOUNT_SUSPENDED', message: 'Account is deactivated' });
+      throw new ForbiddenException({
+        code: 'ACCOUNT_SUSPENDED',
+        message: 'Account is deactivated',
+      });
     }
 
     if (user.tenant.status === 'SUSPENDED' || user.tenant.status === 'CANCELLED') {
-      throw new ForbiddenException({ code: 'ACCOUNT_SUSPENDED', message: 'Tenant account is suspended' });
+      throw new ForbiddenException({
+        code: 'ACCOUNT_SUSPENDED',
+        message: 'Tenant account is suspended',
+      });
     }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
-      throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Invalid email or password' });
+      throw new UnauthorizedException({
+        code: 'INVALID_CREDENTIALS',
+        message: 'Invalid email or password',
+      });
     }
 
     await this.db.user.update({
@@ -150,7 +169,11 @@ export class AuthService {
       data: { lastLoginAt: new Date() },
     });
 
-    const { accessToken, refreshToken } = await this.issueTokens(user.id, user.tenantId, user.role as UserRole);
+    const { accessToken, refreshToken } = await this.issueTokens(
+      user.id,
+      user.tenantId,
+      user.role as UserRole,
+    );
 
     return {
       accessToken,
@@ -170,7 +193,10 @@ export class AuthService {
         secret: env.REFRESH_SECRET,
       });
     } catch {
-      throw new UnauthorizedException({ code: 'TOKEN_EXPIRED', message: 'Refresh token is expired or invalid' });
+      throw new UnauthorizedException({
+        code: 'TOKEN_EXPIRED',
+        message: 'Refresh token is expired or invalid',
+      });
     }
 
     if (payload.type !== 'refresh') {
@@ -181,11 +207,17 @@ export class AuthService {
     const stored = await this.db.refreshToken.findUnique({ where: { tokenHash } });
 
     if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
-      throw new UnauthorizedException({ code: 'TOKEN_REVOKED', message: 'Refresh token has been revoked' });
+      throw new UnauthorizedException({
+        code: 'TOKEN_REVOKED',
+        message: 'Refresh token has been revoked',
+      });
     }
 
     // Rotate: revoke old, issue new pair
-    await this.db.refreshToken.update({ where: { id: stored.id }, data: { revokedAt: new Date() } });
+    await this.db.refreshToken.update({
+      where: { id: stored.id },
+      data: { revokedAt: new Date() },
+    });
     return this.issueTokens(payload.sub, payload.tenantId, payload.role);
   }
 
@@ -230,12 +262,18 @@ export class AuthService {
     const tokenHash = this.hashToken(dto.token);
 
     if (env.REDIS_ENABLED === 'false') {
-      throw new BadRequestException({ code: 'FEATURE_UNAVAILABLE', message: 'Password reset requires Redis. Please contact your administrator.' });
+      throw new BadRequestException({
+        code: 'FEATURE_UNAVAILABLE',
+        message: 'Password reset requires Redis. Please contact your administrator.',
+      });
     }
 
     const userId = await this.redis.get(`pwd_reset:${tokenHash}`);
     if (!userId) {
-      throw new BadRequestException({ code: 'INVALID_RESET_TOKEN', message: 'Reset token is invalid or expired' });
+      throw new BadRequestException({
+        code: 'INVALID_RESET_TOKEN',
+        message: 'Reset token is invalid or expired',
+      });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -257,16 +295,25 @@ export class AuthService {
     try {
       payload = this.jwtService.verify<JwtPayload>(dto.token, { secret: env.JWT_SECRET });
     } catch {
-      throw new BadRequestException({ code: 'INVALID_INVITE_TOKEN', message: 'Invite token is invalid or expired' });
+      throw new BadRequestException({
+        code: 'INVALID_INVITE_TOKEN',
+        message: 'Invite token is invalid or expired',
+      });
     }
 
     if (payload.type !== 'invite') {
-      throw new BadRequestException({ code: 'INVALID_INVITE_TOKEN', message: 'Invalid token type' });
+      throw new BadRequestException({
+        code: 'INVALID_INVITE_TOKEN',
+        message: 'Invalid token type',
+      });
     }
 
     const user = await this.db.user.findUnique({ where: { id: payload.sub } });
     if (!user || user.status !== 'INVITED') {
-      throw new BadRequestException({ code: 'INVITE_ALREADY_USED', message: 'Invite has already been used' });
+      throw new BadRequestException({
+        code: 'INVITE_ALREADY_USED',
+        message: 'Invite has already been used',
+      });
     }
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
@@ -275,7 +322,11 @@ export class AuthService {
       data: { passwordHash, status: 'ACTIVE' },
     });
 
-    const { accessToken, refreshToken } = await this.issueTokens(updated.id, updated.tenantId, updated.role as UserRole);
+    const { accessToken, refreshToken } = await this.issueTokens(
+      updated.id,
+      updated.tenantId,
+      updated.role as UserRole,
+    );
     return {
       accessToken,
       refreshToken,
@@ -288,7 +339,15 @@ export class AuthService {
   async getMe(userId: string) {
     const user = await this.db.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, status: true, tenantId: true, lastLoginAt: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        tenantId: true,
+        lastLoginAt: true,
+      },
     });
     if (!user) throw new NotFoundException({ code: 'USER_NOT_FOUND', message: 'User not found' });
     return user;

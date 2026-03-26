@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Inject,
-} from '@nestjs/common';
-import { createTenantClient } from '@qa/prisma-tenant';
+import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
 import { getMasterClient } from '@qa/prisma-master';
 import { Queue } from 'bullmq';
 import { TenantConnectionPool } from '../tenant/tenant-connection-pool.service';
@@ -88,27 +82,40 @@ export class ConversationsService {
       where: { id },
       include: { evaluation: true },
     });
-    if (!conv) throw new NotFoundException({ code: 'CONVERSATION_NOT_FOUND', message: 'Conversation not found' });
+    if (!conv)
+      throw new NotFoundException({
+        code: 'CONVERSATION_NOT_FOUND',
+        message: 'Conversation not found',
+      });
     return conv;
   }
 
-  async uploadConversations(tenantId: string, payload: {
-    channel: string;
-    conversations: Array<{
-      externalId?: string;
-      agentId?: string;
-      agentName?: string;
-      customerRef?: string;
-      content: unknown;
-      metadata?: unknown;
-      receivedAt?: string;
-    }>;
-  }) {
+  async uploadConversations(
+    tenantId: string,
+    payload: {
+      channel: string;
+      conversations: Array<{
+        externalId?: string;
+        agentId?: string;
+        agentName?: string;
+        customerRef?: string;
+        content: unknown;
+        metadata?: unknown;
+        receivedAt?: string;
+      }>;
+    },
+  ) {
     if (!payload.conversations?.length) {
-      throw new BadRequestException({ code: 'EMPTY_PAYLOAD', message: 'No conversations provided' });
+      throw new BadRequestException({
+        code: 'EMPTY_PAYLOAD',
+        message: 'No conversations provided',
+      });
     }
     if (payload.conversations.length > 500) {
-      throw new BadRequestException({ code: 'BATCH_TOO_LARGE', message: 'Maximum 500 conversations per upload' });
+      throw new BadRequestException({
+        code: 'BATCH_TOO_LARGE',
+        message: 'Maximum 500 conversations per upload',
+      });
     }
 
     const db = await this.getTenantDb(tenantId);
@@ -172,7 +179,10 @@ export class ConversationsService {
               { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
             );
           } catch (queueErr) {
-            console.warn('[Conversations] Failed to enqueue eval job:', (queueErr as Error).message);
+            console.warn(
+              '[Conversations] Failed to enqueue eval job:',
+              (queueErr as Error).message,
+            );
           }
         }
       }

@@ -34,7 +34,9 @@ function buildPrompt(
       const rubricText = q.rubric
         ? `  Rubric: ${q.rubric.goal}\n  ${q.rubric.anchors.map((a) => `${a.value}: ${a.label}`).join(' | ')}`
         : '';
-      const optionsText = q.options ? `  Options: ${q.options.map((o) => `${o.value}=${o.label}`).join(', ')}` : '';
+      const optionsText = q.options
+        ? `  Options: ${q.options.map((o) => `${o.value}=${o.label}`).join(', ')}`
+        : '';
       return [
         `[${sectionMap.get(q.sectionId) ?? q.sectionId}] Q:${q.key} (type=${q.type}, weight=${q.weight})`,
         `  Label: ${q.label}`,
@@ -66,7 +68,6 @@ ${questionBlock}
 
 async function processEval(job: Job<EvalProcessJobPayload>) {
   const { tenantId, conversationId, evaluationId, formDefinitionId } = job.data;
-  const env = getEnv();
 
   // 1. Get tenant DB connection URL
   const tenant = await masterDb.tenant.findUniqueOrThrow({ where: { id: tenantId } });
@@ -118,13 +119,15 @@ async function processEval(job: Job<EvalProcessJobPayload>) {
   let rawAnswers: Record<string, { value: unknown; reasoning?: string; confidence?: number }> = {};
 
   try {
-    const baseUrl = llmConfig.provider === 'OPENAI'
-      ? 'https://api.openai.com'
-      : (llmConfig.endpoint ?? 'https://api.openai.com');
+    const baseUrl =
+      llmConfig.provider === 'OPENAI'
+        ? 'https://api.openai.com'
+        : (llmConfig.endpoint ?? 'https://api.openai.com');
 
-    const path = llmConfig.provider === 'AZURE_OPENAI'
-      ? `/openai/deployments/${llmConfig.model}/chat/completions?api-version=2024-02-01`
-      : '/v1/chat/completions';
+    const path =
+      llmConfig.provider === 'AZURE_OPENAI'
+        ? `/openai/deployments/${llmConfig.model}/chat/completions?api-version=2024-02-01`
+        : '/v1/chat/completions';
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -150,7 +153,7 @@ async function processEval(job: Job<EvalProcessJobPayload>) {
       throw new Error(`LLM API error ${response.status}: ${await response.text()}`);
     }
 
-    const data = await response.json() as {
+    const data = (await response.json()) as {
       choices: Array<{ message: { content: string } }>;
       usage?: { prompt_tokens: number; completion_tokens: number };
     };
@@ -219,17 +222,21 @@ async function processEval(job: Job<EvalProcessJobPayload>) {
     return { aiScore: scoreResult.overallScore, durationMs };
   } catch (err: unknown) {
     // Mark evaluation as AI_FAILED
-    await tenantDb.evaluation.update({
-      where: { id: evaluationId },
-      data: {
-        workflowState: WorkflowState.AI_FAILED,
-        // Fall back to QA queue anyway so humans can still review
-      },
-    }).catch(() => {});
-    await tenantDb.conversation.update({
-      where: { id: conversationId },
-      data: { status: 'FAILED' },
-    }).catch(() => {});
+    await tenantDb.evaluation
+      .update({
+        where: { id: evaluationId },
+        data: {
+          workflowState: WorkflowState.AI_FAILED,
+          // Fall back to QA queue anyway so humans can still review
+        },
+      })
+      .catch(() => {});
+    await tenantDb.conversation
+      .update({
+        where: { id: conversationId },
+        data: { status: 'FAILED' },
+      })
+      .catch(() => {});
     throw err;
   } finally {
     await tenantDb.$disconnect();
@@ -241,18 +248,14 @@ async function processEval(job: Job<EvalProcessJobPayload>) {
 export function startEvalWorker() {
   const env = getEnv();
 
-  const worker = new Worker<EvalProcessJobPayload>(
-    QUEUE_NAMES.EVAL_PROCESS,
-    processEval,
-    {
-      connection: {
-        host: env.REDIS_HOST,
-        port: env.REDIS_PORT,
-        password: env.REDIS_PASSWORD,
-      },
-      concurrency: 5,
+  const worker = new Worker<EvalProcessJobPayload>(QUEUE_NAMES.EVAL_PROCESS, processEval, {
+    connection: {
+      host: env.REDIS_HOST,
+      port: env.REDIS_PORT,
+      password: env.REDIS_PASSWORD,
     },
-  );
+    concurrency: 5,
+  });
 
   worker.on('completed', (job, result) => {
     console.log(`[eval-worker] Job ${job.id} completed`, result);

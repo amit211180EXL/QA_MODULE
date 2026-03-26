@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Req,
-  HttpCode,
-  HttpStatus,
-  Headers,
-} from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, HttpCode, HttpStatus, Headers } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -67,7 +58,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Revoke current refresh token' })
   async logout(@Body() dto: RefreshTokenDto, @Req() req: Request) {
     await this.authService.logout(dto.refreshToken);
-    return buildResponse({ success: true }, (req as unknown as Record<string, string>)['requestId']);
+    return buildResponse(
+      { success: true },
+      (req as unknown as Record<string, string>)['requestId'],
+    );
   }
 
   @Public()
@@ -90,7 +84,10 @@ export class AuthController {
   @ApiOperation({ summary: 'Consume reset token and set new password' })
   async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
     await this.authService.resetPassword(dto);
-    return buildResponse({ success: true }, (req as unknown as Record<string, string>)['requestId']);
+    return buildResponse(
+      { success: true },
+      (req as unknown as Record<string, string>)['requestId'],
+    );
   }
 
   @Public()

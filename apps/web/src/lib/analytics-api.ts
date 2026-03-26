@@ -29,9 +29,7 @@ export const analyticsApi = {
     const params = new URLSearchParams();
     if (from) params.set('from', from.toISOString());
     if (to) params.set('to', to.toISOString());
-    return api
-      .get<OverviewKpis>(`/api/v1/analytics/overview?${params}`)
-      .then((r) => r.data);
+    return api.get<OverviewKpis>(`/api/v1/analytics/overview?${params}`).then((r) => r.data);
   },
 
   agentPerformance: (from?: Date, to?: Date) => {

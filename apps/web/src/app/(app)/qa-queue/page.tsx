@@ -27,7 +27,9 @@ function StateBadge({ state }: { state: string }) {
     ESCALATED: 'bg-red-50 text-red-700',
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[state] ?? 'bg-gray-100 text-gray-500'}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[state] ?? 'bg-gray-100 text-gray-500'}`}
+    >
       {state.replace(/_/g, ' ')}
     </span>
   );
@@ -51,7 +53,9 @@ export default function QaQueuePage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">QA Queue</h1>
           <p className="text-sm text-gray-500">
-            {total > 0 ? `${total} item${total !== 1 ? 's' : ''} awaiting review` : 'No items in queue'}
+            {total > 0
+              ? `${total} item${total !== 1 ? 's' : ''} awaiting review`
+              : 'No items in queue'}
           </p>
         </div>
       </div>
@@ -59,15 +63,21 @@ export default function QaQueuePage() {
       <div className="mt-6 rounded-xl border border-gray-200 bg-white overflow-hidden">
         {isLoading && <div className="py-16 text-center text-sm text-gray-500">Loading queue…</div>}
         {isError && (
-          <div className="p-6"><Alert variant="error">Failed to load QA queue.</Alert></div>
+          <div className="p-6">
+            <Alert variant="error">Failed to load QA queue.</Alert>
+          </div>
         )}
         {!isLoading && !isError && items.length === 0 && (
           <div className="flex flex-col items-center py-16 text-center">
             <ClipboardList className="mb-3 h-10 w-10 text-gray-300" />
             <p className="text-gray-700 font-medium">Queue is empty</p>
-            <p className="mt-1 text-sm text-gray-500">New conversations will appear here after AI evaluation</p>
+            <p className="mt-1 text-sm text-gray-500">
+              New conversations will appear here after AI evaluation
+            </p>
             <Link href="/conversations">
-              <Button className="mt-4" variant="secondary">Go to Conversations</Button>
+              <Button className="mt-4" variant="secondary">
+                Go to Conversations
+              </Button>
             </Link>
           </div>
         )}
@@ -75,8 +85,19 @@ export default function QaQueuePage() {
           <table className="min-w-full divide-y divide-gray-100">
             <thead className="bg-gray-50">
               <tr>
-                {['Conversation', 'Channel', 'Agent', 'AI Score', 'State', 'Received', 'Action'].map((col) => (
-                  <th key={col} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                {[
+                  'Conversation',
+                  'Channel',
+                  'Agent',
+                  'AI Score',
+                  'State',
+                  'Received',
+                  'Action',
+                ].map((col) => (
+                  <th
+                    key={col}
+                    className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                  >
                     {col}
                   </th>
                 ))}
@@ -89,21 +110,29 @@ export default function QaQueuePage() {
                     {item.conversation.externalId ?? item.conversationId.slice(0, 8)}
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{item.conversation.channel}</td>
-                  <td className="px-4 py-3 text-sm text-gray-700">{item.conversation.agentName ?? '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
+                    {item.conversation.agentName ?? '—'}
+                  </td>
                   <td className="px-4 py-3">
                     {item.aiScore !== null ? (
-                      <span className="text-sm font-medium text-gray-800">{item.aiScore.toFixed(1)}%</span>
+                      <span className="text-sm font-medium text-gray-800">
+                        {item.aiScore.toFixed(1)}%
+                      </span>
                     ) : (
                       <span className="text-sm text-gray-400">Pending</span>
                     )}
                   </td>
-                  <td className="px-4 py-3"><StateBadge state={item.workflowState} /></td>
+                  <td className="px-4 py-3">
+                    <StateBadge state={item.workflowState} />
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-500">
                     {new Date(item.conversation.receivedAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3">
                     <Link href={`/qa-queue/${item.id}`}>
-                      <Button size="sm" variant="secondary">Review</Button>
+                      <Button size="sm" variant="secondary">
+                        Review
+                      </Button>
                     </Link>
                   </td>
                 </tr>

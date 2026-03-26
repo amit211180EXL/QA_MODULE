@@ -29,7 +29,6 @@ export class ScoringService {
     const { passMark, scale, roundingPolicy } = strategy;
 
     // Build lookup maps
-    const sectionMap = new Map<string, FormSection>(sections.map((s) => [s.id, s]));
     const questionsBySection = new Map<string, FormQuestion[]>();
     for (const q of questions) {
       if (!questionsBySection.has(q.sectionId)) questionsBySection.set(q.sectionId, []);
@@ -106,9 +105,12 @@ export class ScoringService {
 
   private applyRounding(value: number, policy: ScoringStrategy['roundingPolicy']): number {
     switch (policy) {
-      case 'floor': return Math.floor(value * 100) / 100;
-      case 'ceil': return Math.ceil(value * 100) / 100;
-      default: return Math.round(value * 100) / 100;
+      case 'floor':
+        return Math.floor(value * 100) / 100;
+      case 'ceil':
+        return Math.ceil(value * 100) / 100;
+      default:
+        return Math.round(value * 100) / 100;
     }
   }
 }

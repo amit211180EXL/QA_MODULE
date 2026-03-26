@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { LlmConfigService } from './llm-config.service';
 import { UpsertLlmConfigDto } from './dto/llm-config.dto';
@@ -29,10 +21,7 @@ export class LlmConfigController {
   @Put()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Create or update LLM configuration (Admin only)' })
-  async upsertConfig(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: UpsertLlmConfigDto,
-  ) {
+  async upsertConfig(@CurrentUser() user: JwtPayload, @Body() dto: UpsertLlmConfigDto) {
     return this.llmConfigService.upsertConfig(user.tenantId, dto);
   }
 

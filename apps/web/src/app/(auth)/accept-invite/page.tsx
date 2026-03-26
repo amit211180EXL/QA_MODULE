@@ -17,7 +17,10 @@ const schema = z
     password: z.string().min(12, 'Password must be at least 12 characters'),
     confirm: z.string().min(1, 'Please confirm your password'),
   })
-  .refine((d) => d.password === d.confirm, { path: ['confirm'], message: 'Passwords do not match' });
+  .refine((d) => d.password === d.confirm, {
+    path: ['confirm'],
+    message: 'Passwords do not match',
+  });
 
 type FormValues = z.infer<typeof schema>;
 

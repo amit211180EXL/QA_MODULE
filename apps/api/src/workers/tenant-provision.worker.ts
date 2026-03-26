@@ -11,13 +11,10 @@ import { resolve } from 'path';
 
 loadEnv();
 
-const TENANT_MIGRATIONS_PATH = resolve(
-  __dirname,
-  '../../../../packages/prisma-tenant/prisma',
-);
+const TENANT_MIGRATIONS_PATH = resolve(__dirname, '../../../../packages/prisma-tenant/prisma');
 
 async function handleProvision(job: Job<TenantProvisionJobPayload>) {
-  const { tenantId, adminUserId, plan } = job.data;
+  const { tenantId, adminUserId } = job.data;
   const env = getEnv();
   const masterDb = getMasterClient();
 
@@ -41,7 +38,9 @@ async function handleProvision(job: Job<TenantProvisionJobPayload>) {
   await superuserClient.connect();
 
   try {
-    await superuserClient.query(`CREATE USER "${dbUser}" WITH PASSWORD '${dbPassword.replace(/'/g, "''")}'`);
+    await superuserClient.query(
+      `CREATE USER "${dbUser}" WITH PASSWORD '${dbPassword.replace(/'/g, "''")}'`,
+    );
     await superuserClient.query(`CREATE DATABASE "${dbName}" OWNER "${dbUser}"`);
     await superuserClient.query(`GRANT ALL PRIVILEGES ON DATABASE "${dbName}" TO "${dbUser}"`);
   } finally {
@@ -88,30 +87,65 @@ async function handleProvision(job: Job<TenantProvisionJobPayload>) {
         description: 'Default template — customize before publishing',
         status: 'DRAFT',
         channels: ['CHAT', 'EMAIL'],
-        scoringStrategy: { type: 'weighted_sections', passMark: 70, scale: 100, roundingPolicy: 'round' },
+        scoringStrategy: {
+          type: 'weighted_sections',
+          passMark: 70,
+          scale: 100,
+          roundingPolicy: 'round',
+        },
         sections: [
           { id: 'sec_1', title: 'Communication', weight: 50, order: 1 },
           { id: 'sec_2', title: 'Resolution', weight: 50, order: 2 },
         ],
         questions: [
           {
-            id: 'q_1', sectionId: 'sec_1', key: 'greeting', label: 'Did the agent greet the customer?',
-            type: 'boolean', required: true, weight: 50, order: 1,
+            id: 'q_1',
+            sectionId: 'sec_1',
+            key: 'greeting',
+            label: 'Did the agent greet the customer?',
+            type: 'boolean',
+            required: true,
+            weight: 50,
+            order: 1,
             rubric: { goal: 'Professional greeting', anchors: [] },
           },
           {
-            id: 'q_2', sectionId: 'sec_1', key: 'tone', label: 'Rate the agent\'s tone',
-            type: 'rating', required: true, weight: 50, order: 2,
+            id: 'q_2',
+            sectionId: 'sec_1',
+            key: 'tone',
+            label: "Rate the agent's tone",
+            type: 'rating',
+            required: true,
+            weight: 50,
+            order: 2,
             validation: { min: 1, max: 5 },
-            rubric: { goal: 'Empathetic and professional', anchors: [{ value: 1, label: 'Very poor' }, { value: 5, label: 'Excellent' }] },
+            rubric: {
+              goal: 'Empathetic and professional',
+              anchors: [
+                { value: 1, label: 'Very poor' },
+                { value: 5, label: 'Excellent' },
+              ],
+            },
           },
           {
-            id: 'q_3', sectionId: 'sec_2', key: 'issue_resolved', label: 'Was the issue resolved?',
-            type: 'boolean', required: true, weight: 60, order: 1,
+            id: 'q_3',
+            sectionId: 'sec_2',
+            key: 'issue_resolved',
+            label: 'Was the issue resolved?',
+            type: 'boolean',
+            required: true,
+            weight: 60,
+            order: 1,
           },
           {
-            id: 'q_4', sectionId: 'sec_2', key: 'resolution_time', label: 'How would you rate the resolution speed?',
-            type: 'rating', required: true, weight: 40, order: 2,
+            id: 'q_4',
+            sectionId: 'sec_2',
+            key: 'resolution_time',
+            label: 'How would you rate the resolution speed?',
+            type: 'rating',
+            required: true,
+            weight: 40,
+            order: 2,
             validation: { min: 1, max: 5 },
           },
         ],

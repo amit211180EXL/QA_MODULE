@@ -73,10 +73,16 @@ export class LlmConfigService {
   async testConnection(tenantId: string): Promise<{ ok: boolean; latencyMs: number }> {
     const config = await this.db.llmConfig.findUnique({ where: { tenantId } });
     if (!config) {
-      throw new NotFoundException({ code: 'LLM_CONFIG_NOT_FOUND', message: 'LLM configuration not found' });
+      throw new NotFoundException({
+        code: 'LLM_CONFIG_NOT_FOUND',
+        message: 'LLM configuration not found',
+      });
     }
     if (!config.enabled) {
-      throw new BadRequestException({ code: 'LLM_DISABLED', message: 'LLM is disabled for this tenant' });
+      throw new BadRequestException({
+        code: 'LLM_DISABLED',
+        message: 'LLM is disabled for this tenant',
+      });
     }
 
     const apiKey = decrypt(config.apiKeyEnc);
@@ -91,7 +97,10 @@ export class LlmConfigService {
             : null;
 
       if (!url) {
-        throw new BadRequestException({ code: 'MISSING_ENDPOINT', message: 'Endpoint required for this provider' });
+        throw new BadRequestException({
+          code: 'MISSING_ENDPOINT',
+          message: 'Endpoint required for this provider',
+        });
       }
 
       const headers: Record<string, string> =

@@ -49,7 +49,9 @@ function buildStub(): Redis {
         const env = getEnv();
 
         if (env.REDIS_ENABLED === 'false') {
-          console.warn('[Redis] REDIS_ENABLED=false — running without Redis. Queues and password-reset features are disabled.');
+          console.warn(
+            '[Redis] REDIS_ENABLED=false — running without Redis. Queues and password-reset features are disabled.',
+          );
           return buildStub();
         }
 

@@ -21,7 +21,11 @@ export class TenantSettingsService {
 
   async upsertEscalationRules(tenantId: string, dto: UpdateEscalationRulesDto) {
     return this.db.escalationRule.upsert({
-      where: { id: (await this.db.escalationRule.findFirst({ where: { tenantId }, select: { id: true } }))?.id ?? '' },
+      where: {
+        id:
+          (await this.db.escalationRule.findFirst({ where: { tenantId }, select: { id: true } }))
+            ?.id ?? '',
+      },
       create: {
         tenantId,
         qaDeviationThreshold: dto.qaDeviationThreshold ?? 15,
@@ -29,8 +33,12 @@ export class TenantSettingsService {
         staleQueueHours: dto.staleQueueHours ?? 24,
       },
       update: {
-        ...(dto.qaDeviationThreshold !== undefined && { qaDeviationThreshold: dto.qaDeviationThreshold }),
-        ...(dto.verifierDeviationThreshold !== undefined && { verifierDeviationThreshold: dto.verifierDeviationThreshold }),
+        ...(dto.qaDeviationThreshold !== undefined && {
+          qaDeviationThreshold: dto.qaDeviationThreshold,
+        }),
+        ...(dto.verifierDeviationThreshold !== undefined && {
+          verifierDeviationThreshold: dto.verifierDeviationThreshold,
+        }),
         ...(dto.staleQueueHours !== undefined && { staleQueueHours: dto.staleQueueHours }),
       },
     });

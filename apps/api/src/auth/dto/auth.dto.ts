@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, Matches, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, Matches, IsEnum } from 'class-validator';
 import { PlanType } from '@qa/shared';
 
 export class SignupDto {

@@ -85,35 +85,46 @@ export const evaluationsApi = {
   get: (id: string) =>
     api.get<{ data: EvaluationDetail }>(`/evaluations/${id}`).then((r) => r.data.data),
 
-  qaStart: (id: string) =>
-    api.post(`/evaluations/${id}/qa-start`).then((r) => r.data),
+  qaStart: (id: string) => api.post(`/evaluations/${id}/qa-start`).then((r) => r.data),
 
-  qaSubmit: (id: string, payload: { adjustedAnswers: Record<string, { value: unknown; overrideReason?: string }>; feedback?: string; flags?: string[] }) =>
-    api.post(`/evaluations/${id}/qa-submit`, payload).then((r) => r.data),
+  qaSubmit: (
+    id: string,
+    payload: {
+      adjustedAnswers: Record<string, { value: unknown; overrideReason?: string }>;
+      feedback?: string;
+      flags?: string[];
+    },
+  ) => api.post(`/evaluations/${id}/qa-submit`, payload).then((r) => r.data),
 
-  verifierStart: (id: string) =>
-    api.post(`/evaluations/${id}/verifier-start`).then((r) => r.data),
+  verifierStart: (id: string) => api.post(`/evaluations/${id}/verifier-start`).then((r) => r.data),
 
   verifierApprove: (id: string) =>
     api.post(`/evaluations/${id}/verifier-approve`).then((r) => r.data),
 
-  verifierModify: (id: string, payload: { modifiedAnswers: Record<string, { value: unknown; overrideReason: string }>; feedback?: string }) =>
-    api.post(`/evaluations/${id}/verifier-modify`, payload).then((r) => r.data),
+  verifierModify: (
+    id: string,
+    payload: {
+      modifiedAnswers: Record<string, { value: unknown; overrideReason: string }>;
+      feedback?: string;
+    },
+  ) => api.post(`/evaluations/${id}/verifier-modify`, payload).then((r) => r.data),
 
   verifierReject: (id: string, reason: string) =>
     api.post(`/evaluations/${id}/verifier-reject`, { reason }).then((r) => r.data),
 
   listQaQueue: (page = 1, limit = 20) =>
     api
-      .get<{ items: EvaluationDetail[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
-        `/evaluations/queue/qa?page=${page}&limit=${limit}`,
-      )
+      .get<{
+        items: EvaluationDetail[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>(`/evaluations/queue/qa?page=${page}&limit=${limit}`)
       .then((r) => r.data),
 
   listVerifierQueue: (page = 1, limit = 20) =>
     api
-      .get<{ items: EvaluationDetail[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
-        `/evaluations/queue/verifier?page=${page}&limit=${limit}`,
-      )
+      .get<{
+        items: EvaluationDetail[];
+        pagination: { page: number; limit: number; total: number; totalPages: number };
+      }>(`/evaluations/queue/verifier?page=${page}&limit=${limit}`)
       .then((r) => r.data),
 };

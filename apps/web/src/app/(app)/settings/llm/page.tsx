@@ -18,16 +18,8 @@ const llmSchema = z.object({
   model: z.string().min(1, 'Model is required'),
   apiKey: z.string().min(1, 'API key is required'),
   endpoint: z.string().url('Enter a valid URL').optional().or(z.literal('')),
-  temperature: z
-    .number({ invalid_type_error: 'Must be a number' })
-    .min(0)
-    .max(2)
-    .default(0.2),
-  maxTokens: z
-    .number({ invalid_type_error: 'Must be a number' })
-    .int()
-    .positive()
-    .default(2048),
+  temperature: z.number({ invalid_type_error: 'Must be a number' }).min(0).max(2).default(0.2),
+  maxTokens: z.number({ invalid_type_error: 'Must be a number' }).int().positive().default(2048),
 });
 
 type LlmFormValues = z.infer<typeof llmSchema>;
@@ -92,14 +84,20 @@ export default function LlmSettingsPage() {
     <div className="max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">LLM Configuration</h1>
-        <p className="text-sm text-gray-500">Connect an AI model to power automated QA evaluations.</p>
+        <p className="text-sm text-gray-500">
+          Connect an AI model to power automated QA evaluations.
+        </p>
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         {isLoading ? (
           <p className="text-sm text-gray-500 py-4">Loading configuration…</p>
         ) : (
-          <form onSubmit={handleSubmit((d) => saveMutation.mutate(d))} noValidate className="space-y-5">
+          <form
+            onSubmit={handleSubmit((d) => saveMutation.mutate(d))}
+            noValidate
+            className="space-y-5"
+          >
             {/* Provider */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">Provider</label>
@@ -164,13 +162,21 @@ export default function LlmSettingsPage() {
 
             {/* Feedback */}
             {saveMutation.isSuccess && <Alert variant="success">Configuration saved.</Alert>}
-            {saveMutation.isError && <Alert variant="error">Failed to save — please try again.</Alert>}
+            {saveMutation.isError && (
+              <Alert variant="error">Failed to save — please try again.</Alert>
+            )}
             {testMutation.isSuccess && <Alert variant="success">Connection test passed!</Alert>}
-            {testMutation.isError && <Alert variant="error">Connection test failed — check your credentials.</Alert>}
+            {testMutation.isError && (
+              <Alert variant="error">Connection test failed — check your credentials.</Alert>
+            )}
 
             {/* Actions */}
             <div className="flex items-center gap-3 pt-2">
-              <Button type="submit" isLoading={isSubmitting || saveMutation.isPending} disabled={!isDirty && !saveMutation.isIdle}>
+              <Button
+                type="submit"
+                isLoading={isSubmitting || saveMutation.isPending}
+                disabled={!isDirty && !saveMutation.isIdle}
+              >
                 Save configuration
               </Button>
               <Button
@@ -189,8 +195,8 @@ export default function LlmSettingsPage() {
 
       {/* Info box */}
       <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm text-blue-700">
-        <strong>Tip:</strong> When AI evaluation is active, uploaded conversations are automatically scored against your
-        QA form. You can always override or adjust the scores before finalising.
+        <strong>Tip:</strong> When AI evaluation is active, uploaded conversations are automatically
+        scored against your QA form. You can always override or adjust the scores before finalising.
       </div>
     </div>
   );

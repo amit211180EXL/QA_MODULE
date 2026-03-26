@@ -18,23 +18,20 @@ export class AnalyticsService {
   async getOverview(tenantId: string, from: Date, to: Date) {
     const db = await this.getDb(tenantId);
 
-    const [
-      totalConversations,
-      completedEvaluations,
-      pendingQA,
-      pendingVerifier,
-      scoreAgg,
-    ] = await Promise.all([
-      db.conversation.count({ where: { receivedAt: { gte: from, lte: to } } }),
-      db.evaluation.count({ where: { workflowState: 'LOCKED', updatedAt: { gte: from, lte: to } } }),
-      db.workflowQueue.count({ where: { queueType: 'QA_QUEUE' } }),
-      db.workflowQueue.count({ where: { queueType: 'VERIFIER_QUEUE' } }),
-      db.evaluation.aggregate({
-        where: { workflowState: 'LOCKED', lockedAt: { gte: from, lte: to } },
-        _avg: { finalScore: true, aiScore: true, qaScore: true },
-        _count: { passFail: true },
-      }),
-    ]);
+    const [totalConversations, completedEvaluations, pendingQA, pendingVerifier, scoreAgg] =
+      await Promise.all([
+        db.conversation.count({ where: { receivedAt: { gte: from, lte: to } } }),
+        db.evaluation.count({
+          where: { workflowState: 'LOCKED', updatedAt: { gte: from, lte: to } },
+        }),
+        db.workflowQueue.count({ where: { queueType: 'QA_QUEUE' } }),
+        db.workflowQueue.count({ where: { queueType: 'VERIFIER_QUEUE' } }),
+        db.evaluation.aggregate({
+          where: { workflowState: 'LOCKED', lockedAt: { gte: from, lte: to } },
+          _avg: { finalScore: true, aiScore: true, qaScore: true },
+          _count: { passFail: true },
+        }),
+      ]);
 
     // Pass rate
     const passCount = await db.evaluation.count({
@@ -108,7 +105,8 @@ export class AnalyticsService {
     });
 
     // Group by day + type
-    const byDay: Record<string, { date: string; AI_VS_QA: number[]; QA_VS_VERIFIER: number[] }> = {};
+    const byDay: Record<string, { date: string; AI_VS_QA: number[]; QA_VS_VERIFIER: number[] }> =
+      {};
     for (const r of records) {
       const day = r.createdAt.toISOString().slice(0, 10);
       if (!byDay[day]) byDay[day] = { date: day, AI_VS_QA: [], QA_VS_VERIFIER: [] };

@@ -20,7 +20,9 @@ const STATUS_STYLES: Record<string, string> = {
 
 function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-500'}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-500'}`}
+    >
       {status.replace('_', ' ')}
     </span>
   );
@@ -49,7 +51,10 @@ function UploadModal({ onClose }: { onClose: () => void }) {
 
   const uploadMutation = useMutation({
     mutationFn: (rows: unknown[]) =>
-      conversationsApi.upload({ channel, conversations: rows as Parameters<typeof conversationsApi.upload>[0]['conversations'] }),
+      conversationsApi.upload({
+        channel,
+        conversations: rows as Parameters<typeof conversationsApi.upload>[0]['conversations'],
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       onClose();
@@ -89,7 +94,9 @@ function UploadModal({ onClose }: { onClose: () => void }) {
               className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
             >
               {['CHAT', 'EMAIL', 'CALL', 'SOCIAL'].map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
@@ -99,20 +106,34 @@ function UploadModal({ onClose }: { onClose: () => void }) {
             onClick={() => fileRef.current?.click()}
           >
             <Upload className="mb-2 h-8 w-8 text-gray-400" />
-            <p className="text-sm font-medium text-gray-700">{fileName ?? 'Click to select a JSON file'}</p>
+            <p className="text-sm font-medium text-gray-700">
+              {fileName ?? 'Click to select a JSON file'}
+            </p>
             <p className="mt-1 text-xs text-gray-500">Array of conversation objects, max 500</p>
-            <input ref={fileRef} type="file" accept=".json,application/json" className="hidden" onChange={handleFile} />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleFile}
+            />
           </div>
 
           {parseError && <Alert variant="error">{parseError}</Alert>}
           {parsed && (
-            <Alert variant="success">{parsed.length} conversation{parsed.length !== 1 ? 's' : ''} ready to upload</Alert>
+            <Alert variant="success">
+              {parsed.length} conversation{parsed.length !== 1 ? 's' : ''} ready to upload
+            </Alert>
           )}
-          {uploadMutation.isError && <Alert variant="error">Upload failed — please try again.</Alert>}
+          {uploadMutation.isError && (
+            <Alert variant="error">Upload failed — please try again.</Alert>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
           <Button
             disabled={!parsed || !parsed.length}
             isLoading={uploadMutation.isPending}
@@ -128,7 +149,15 @@ function UploadModal({ onClose }: { onClose: () => void }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const STATUSES = ['', 'PENDING', 'EVALUATING', 'QA_REVIEW', 'VERIFIER_REVIEW', 'COMPLETED', 'FAILED'];
+const STATUSES = [
+  '',
+  'PENDING',
+  'EVALUATING',
+  'QA_REVIEW',
+  'VERIFIER_REVIEW',
+  'COMPLETED',
+  'FAILED',
+];
 
 export default function ConversationsPage() {
   const [statusFilter, setStatusFilter] = useState('');
@@ -138,8 +167,7 @@ export default function ConversationsPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['conversations', statusFilter, page],
-    queryFn: () =>
-      conversationsApi.list({ status: statusFilter || undefined, page, limit: 20 }),
+    queryFn: () => conversationsApi.list({ status: statusFilter || undefined, page, limit: 20 }),
   });
 
   const items: ConversationListItem[] = data?.items ?? [];
@@ -174,7 +202,10 @@ export default function ConversationsPage() {
         {STATUSES.map((s) => (
           <button
             key={s}
-            onClick={() => { setStatusFilter(s); setPage(1); }}
+            onClick={() => {
+              setStatusFilter(s);
+              setPage(1);
+            }}
             className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium transition-colors ${
               statusFilter === s
                 ? 'bg-primary-600 text-white'
@@ -188,17 +219,19 @@ export default function ConversationsPage() {
 
       {/* Table */}
       <div className="mt-4 rounded-xl border border-gray-200 bg-white overflow-hidden">
-        {isLoading && (
-          <div className="py-16 text-center text-sm text-gray-500">Loading…</div>
-        )}
+        {isLoading && <div className="py-16 text-center text-sm text-gray-500">Loading…</div>}
         {isError && (
-          <div className="p-6"><Alert variant="error">Failed to load conversations.</Alert></div>
+          <div className="p-6">
+            <Alert variant="error">Failed to load conversations.</Alert>
+          </div>
         )}
         {!isLoading && !isError && items.length === 0 && (
           <div className="flex flex-col items-center py-16 text-center">
             <Upload className="mb-3 h-10 w-10 text-gray-300" />
             <p className="text-gray-500 text-sm">No conversations yet</p>
-            <Button className="mt-4" onClick={() => setShowUpload(true)}>Upload your first batch</Button>
+            <Button className="mt-4" onClick={() => setShowUpload(true)}>
+              Upload your first batch
+            </Button>
           </div>
         )}
         {!isLoading && items.length > 0 && (
@@ -206,8 +239,19 @@ export default function ConversationsPage() {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-50">
                 <tr>
-                  {['External ID', 'Channel', 'Agent', 'Customer', 'Status', 'Score', 'Received'].map((col) => (
-                    <th key={col} className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                  {[
+                    'External ID',
+                    'Channel',
+                    'Agent',
+                    'Customer',
+                    'Status',
+                    'Score',
+                    'Received',
+                  ].map((col) => (
+                    <th
+                      key={col}
+                      className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
+                    >
                       {col}
                     </th>
                   ))}
@@ -216,13 +260,20 @@ export default function ConversationsPage() {
               <tbody className="divide-y divide-gray-100">
                 {items.map((c) => (
                   <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-600 font-mono">{c.externalId ?? c.id.slice(0, 8)}</td>
+                    <td className="px-4 py-3 text-sm text-gray-600 font-mono">
+                      {c.externalId ?? c.id.slice(0, 8)}
+                    </td>
                     <td className="px-4 py-3 text-sm text-gray-600">{c.channel}</td>
                     <td className="px-4 py-3 text-sm text-gray-700">{c.agentName ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-gray-600">{c.customerRef ?? '—'}</td>
-                    <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                     <td className="px-4 py-3">
-                      <ScoreCell score={c.evaluation?.finalScore ?? null} passFail={c.evaluation?.passFail ?? null} />
+                      <StatusBadge status={c.status} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <ScoreCell
+                        score={c.evaluation?.finalScore ?? null}
+                        passFail={c.evaluation?.passFail ?? null}
+                      />
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
                       {new Date(c.receivedAt).toLocaleDateString()}
@@ -236,13 +287,24 @@ export default function ConversationsPage() {
             {pagination && pagination.totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-gray-100 px-4 py-3">
                 <p className="text-sm text-gray-500">
-                  {(page - 1) * pagination.limit + 1}–{Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
+                  {(page - 1) * pagination.limit + 1}–
+                  {Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
                     Previous
                   </Button>
-                  <Button variant="secondary" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
                     Next
                   </Button>
                 </div>

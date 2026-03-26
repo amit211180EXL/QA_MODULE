@@ -1,10 +1,4 @@
-import {
-  ExceptionFilter,
-  Catch,
-  ArgumentsHost,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { ApiError } from '@qa/shared';
 
@@ -16,9 +10,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const request = ctx.getRequest<Request>();
 
     const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
     let code = 'INTERNAL_SERVER_ERROR';
     let message = 'An unexpected error occurred';
@@ -28,7 +20,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const exResponse = exception.getResponse();
       if (typeof exResponse === 'object' && exResponse !== null) {
         const resp = exResponse as Record<string, unknown>;
-        code = (resp['code'] as string) ?? exception.constructor.name.replace('Exception', '').toUpperCase();
+        code =
+          (resp['code'] as string) ??
+          exception.constructor.name.replace('Exception', '').toUpperCase();
         message = (resp['message'] as string) ?? exception.message;
         if (Array.isArray(resp['message'])) {
           // ValidationPipe sends array of messages

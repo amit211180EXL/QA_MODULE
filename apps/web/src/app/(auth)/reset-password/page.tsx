@@ -16,7 +16,10 @@ const schema = z
     password: z.string().min(12, 'Password must be at least 12 characters'),
     confirm: z.string().min(1, 'Please confirm your password'),
   })
-  .refine((d) => d.password === d.confirm, { path: ['confirm'], message: 'Passwords do not match' });
+  .refine((d) => d.password === d.confirm, {
+    path: ['confirm'],
+    message: 'Passwords do not match',
+  });
 
 type FormValues = z.infer<typeof schema>;
 
@@ -59,7 +62,9 @@ export default function ResetPasswordPage() {
   return (
     <>
       <h1 className="mb-1 text-xl font-semibold text-gray-900">Set new password</h1>
-      <p className="mb-6 text-sm text-gray-500">Choose a strong password of at least 12 characters.</p>
+      <p className="mb-6 text-sm text-gray-500">
+        Choose a strong password of at least 12 characters.
+      </p>
 
       {serverError && <Alert className="mb-4">{serverError}</Alert>}
 

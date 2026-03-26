@@ -6,7 +6,11 @@ import {
   Inject,
 } from '@nestjs/common';
 import { TenantConnectionPool } from '../tenant/tenant-connection-pool.service';
-import { CreateFormDefinitionDto, UpdateFormDefinitionDto, FormStatusAction } from './dto/forms.dto';
+import {
+  CreateFormDefinitionDto,
+  UpdateFormDefinitionDto,
+  FormStatusAction,
+} from './dto/forms.dto';
 
 @Injectable()
 export class FormsService {
@@ -78,7 +82,10 @@ export class FormsService {
     const form = await db.formDefinition.findUnique({ where: { id } });
     if (!form) throw new NotFoundException({ code: 'FORM_NOT_FOUND', message: 'Form not found' });
     if (form.status !== 'DRAFT') {
-      throw new ConflictException({ code: 'FORM_NOT_EDITABLE', message: 'Only DRAFT forms can be edited' });
+      throw new ConflictException({
+        code: 'FORM_NOT_EDITABLE',
+        message: 'Only DRAFT forms can be edited',
+      });
     }
 
     return db.formDefinition.update({

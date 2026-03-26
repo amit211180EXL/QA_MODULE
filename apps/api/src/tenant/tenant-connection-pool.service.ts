@@ -1,12 +1,7 @@
-import {
-  Injectable,
-  Inject,
-  OnApplicationShutdown,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, Inject, OnApplicationShutdown, Logger } from '@nestjs/common';
 import { createTenantClient, TenantPrismaClient } from '@qa/prisma-tenant';
 import { getMasterClient } from '@qa/prisma-master';
-import { getEnv } from '@qa/config';
+
 import { decrypt } from '../common/utils/encryption.util';
 import { PLAN_LIMITS, PlanType } from '@qa/shared';
 import Redis from 'ioredis';
@@ -33,14 +28,27 @@ export class TenantConnectionPool implements OnApplicationShutdown {
     const existing = this.pools.get(tenantId);
     if (existing) {
       existing.lastUsed = Date.now();
-      await this.redis.set(`${POOL_CACHE_PREFIX}${tenantId}`, Date.now().toString(), 'EX', POOL_TTL_S);
+      await this.redis.set(
+        `${POOL_CACHE_PREFIX}${tenantId}`,
+        Date.now().toString(),
+        'EX',
+        POOL_TTL_S,
+      );
       return existing.client;
     }
 
     // 2. Fetch tenant DB config from master DB
     const tenant = await this.masterDb.tenant.findUnique({
       where: { id: tenantId },
-      select: { dbHost: true, dbPort: true, dbName: true, dbUser: true, dbPasswordEnc: true, plan: true, status: true },
+      select: {
+        dbHost: true,
+        dbPort: true,
+        dbName: true,
+        dbUser: true,
+        dbPasswordEnc: true,
+        plan: true,
+        status: true,
+      },
     });
 
     if (!tenant || tenant.status !== 'ACTIVE') {
@@ -60,15 +68,24 @@ export class TenantConnectionPool implements OnApplicationShutdown {
 
     // 4. Create client with plan-based pool size
     const poolSize = PLAN_LIMITS[tenant.plan as PlanType]?.dbPoolSize ?? 2;
-    const client = createTenantClient(`${databaseUrl}?connection_limit=${poolSize}&pool_timeout=10`);
+    const client = createTenantClient(
+      `${databaseUrl}?connection_limit=${poolSize}&pool_timeout=10`,
+    );
 
     // 5. Test connection
     await client.$connect();
 
     this.pools.set(tenantId, { client, lastUsed: Date.now() });
-    await this.redis.set(`${POOL_CACHE_PREFIX}${tenantId}`, Date.now().toString(), 'EX', POOL_TTL_S);
+    await this.redis.set(
+      `${POOL_CACHE_PREFIX}${tenantId}`,
+      Date.now().toString(),
+      'EX',
+      POOL_TTL_S,
+    );
 
-    this.logger.log(`Created new DB pool for tenant ${tenantId} (plan: ${tenant.plan}, pool: ${poolSize})`);
+    this.logger.log(
+      `Created new DB pool for tenant ${tenantId} (plan: ${tenant.plan}, pool: ${poolSize})`,
+    );
     return client;
   }
 

@@ -35,20 +35,19 @@ export const authApi = {
       })
       .then((r) => r.data.data),
 
-  logout: (refreshToken: string) =>
-    api.post('/auth/logout', { refreshToken }),
+  logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
 
-  forgotPassword: (email: string) =>
-    api.post('/auth/forgot-password', { email }),
+  forgotPassword: (email: string) => api.post('/auth/forgot-password', { email }),
 
   resetPassword: (token: string, password: string) =>
     api.post('/auth/reset-password', { token, password }),
 
   acceptInvite: (token: string, password: string) =>
-    api.post<{ data: AuthResponse }>('/auth/accept-invite', { token, password }).then((r) => r.data.data),
+    api
+      .post<{ data: AuthResponse }>('/auth/accept-invite', { token, password })
+      .then((r) => r.data.data),
 
-  me: () =>
-    api.get<{ data: CurrentUser }>('/auth/me').then((r) => r.data.data),
+  me: () => api.get<{ data: CurrentUser }>('/auth/me').then((r) => r.data.data),
 };
 
 export interface CurrentUser {
@@ -64,8 +63,7 @@ export interface CurrentUser {
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const usersApi = {
-  list: () =>
-    api.get<{ data: CurrentUser[] }>('/users').then((r) => r.data.data),
+  list: () => api.get<{ data: CurrentUser[] }>('/users').then((r) => r.data.data),
 
   invite: (payload: { email: string; name: string; role: string }) =>
     api.post('/users/invite', payload).then((r) => r.data),
@@ -73,19 +71,15 @@ export const usersApi = {
   update: (id: string, payload: { name?: string; role?: string; status?: string }) =>
     api.patch(`/users/${id}`, payload).then((r) => r.data),
 
-  deactivate: (id: string) =>
-    api.delete(`/users/${id}`),
+  deactivate: (id: string) => api.delete(`/users/${id}`),
 };
 
 // ─── LLM Config ───────────────────────────────────────────────────────────────
 
 export const llmApi = {
-  get: () =>
-    api.get('/llm-config').then((r) => r.data),
-  set: (payload: Record<string, unknown>) =>
-    api.put('/llm-config', payload).then((r) => r.data),
-  test: () =>
-    api.post('/llm-config/test').then((r) => r.data),
+  get: () => api.get('/llm-config').then((r) => r.data),
+  set: (payload: Record<string, unknown>) => api.put('/llm-config', payload).then((r) => r.data),
+  test: () => api.post('/llm-config/test').then((r) => r.data),
 };
 
 // ─── Conversations ────────────────────────────────────────────────────────────
@@ -112,7 +106,9 @@ export interface ConversationListResponse {
 
 export const conversationsApi = {
   list: (params?: { status?: string; agentId?: string; page?: number; limit?: number }) =>
-    api.get<{ data: ConversationListResponse }>('/conversations', { params }).then((r) => r.data.data),
+    api
+      .get<{ data: ConversationListResponse }>('/conversations', { params })
+      .then((r) => r.data.data),
 
   get: (id: string) =>
     api.get<{ data: ConversationListItem }>(`/conversations/${id}`).then((r) => r.data.data),
@@ -129,7 +125,9 @@ export const conversationsApi = {
       receivedAt?: string;
     }>;
   }) =>
-    api.post<{ data: { uploaded: number } }>('/conversations/upload', payload).then((r) => r.data.data),
+    api
+      .post<{ data: { uploaded: number } }>('/conversations/upload', payload)
+      .then((r) => r.data.data),
 };
 
 // ─── Forms ────────────────────────────────────────────────────────────────────
@@ -146,20 +144,45 @@ export interface FormListItem {
   createdAt: string;
 }
 
-export const formsApi = {
-  list: () =>
-    api.get<{ data: FormListItem[] }>('/forms').then((r) => r.data.data),
+export interface FormSectionDef {
+  id: string;
+  title: string;
+  weight: number;
+  order: number;
+}
 
-  get: (id: string) =>
-    api.get<{ data: FormListItem }>(`/forms/${id}`).then((r) => r.data.data),
+export interface FormQuestionDef {
+  id: string;
+  sectionId: string;
+  key: string;
+  label: string;
+  type: 'rating' | 'boolean' | 'text' | 'select' | 'multiselect';
+  required: boolean;
+  weight: number;
+  order: number;
+  rubric?: { goal: string; anchors?: Array<{ value: number; label: string }> };
+  options?: Array<{ value: string; label: string }>;
+  validation?: { min?: number; max?: number };
+}
+
+export interface FormDetail extends FormListItem {
+  sections: FormSectionDef[];
+  questions: FormQuestionDef[];
+  scoringStrategy: { type: string; passMark: number; scale?: number };
+  metadata?: Record<string, unknown>;
+}
+
+export const formsApi = {
+  list: () => api.get<{ data: FormListItem[] }>('/forms').then((r) => r.data.data),
+
+  get: (id: string) => api.get<{ data: FormDetail }>(`/forms/${id}`).then((r) => r.data.data),
 
   create: (payload: Record<string, unknown>) =>
     api.post<{ data: FormListItem }>('/forms', payload).then((r) => r.data.data),
 
   update: (id: string, payload: Record<string, unknown>) =>
-    api.patch<{ data: FormListItem }>(`/forms/${id}`, payload).then((r) => r.data.data),
+    api.patch<{ data: FormDetail }>(`/forms/${id}`, payload).then((r) => r.data.data),
 
   changeStatus: (id: string, action: 'publish' | 'deprecate' | 'archive') =>
     api.post<{ data: FormListItem }>(`/forms/${id}/status`, { action }).then((r) => r.data.data),
 };
-

@@ -30,7 +30,7 @@ type FormValues = z.infer<typeof schema>;
 export default function SignupPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const [_success, setSuccess] = useState(false);
 
   const {
     register,
@@ -59,7 +59,9 @@ export default function SignupPage() {
   return (
     <>
       <h1 className="mb-1 text-xl font-semibold text-gray-900">Create your workspace</h1>
-      <p className="mb-6 text-sm text-gray-500">Get started with a free trial — no credit card required</p>
+      <p className="mb-6 text-sm text-gray-500">
+        Get started with a free trial — no credit card required
+      </p>
 
       {serverError && (
         <Alert variant="error" className="mb-4">

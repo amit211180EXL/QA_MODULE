@@ -4,7 +4,6 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
-  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -37,8 +36,13 @@ export class UsersService {
     return this.db.user.findMany({
       where: { tenantId },
       select: {
-        id: true, email: true, name: true, role: true, status: true,
-        lastLoginAt: true, createdAt: true,
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -48,8 +52,13 @@ export class UsersService {
     const user = await this.db.user.findFirst({
       where: { id: userId, tenantId },
       select: {
-        id: true, email: true, name: true, role: true, status: true,
-        lastLoginAt: true, createdAt: true,
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        status: true,
+        lastLoginAt: true,
+        createdAt: true,
       },
     });
     if (!user) throw new NotFoundException({ code: 'USER_NOT_FOUND', message: 'User not found' });
@@ -62,7 +71,10 @@ export class UsersService {
       where: { tenantId_email: { tenantId, email: dto.email } },
     });
     if (existing) {
-      throw new ConflictException({ code: 'USER_ALREADY_EXISTS', message: 'User with this email already exists' });
+      throw new ConflictException({
+        code: 'USER_ALREADY_EXISTS',
+        message: 'User with this email already exists',
+      });
     }
 
     const user = await this.db.user.create({
@@ -94,10 +106,18 @@ export class UsersService {
       tenantId,
       type: 'user_invited',
       recipientIds: [user.id],
-      data: { inviteToken, invitedByName: invitedBy.sub, acceptUrl: `${env.API_URL}/accept-invite` },
+      data: {
+        inviteToken,
+        invitedByName: invitedBy.sub,
+        acceptUrl: `${env.API_URL}/accept-invite`,
+      },
     };
     if (this.notifyQueue) {
-      try { await this.notifyQueue.add('notify', notifyPayload, { attempts: 3 }); } catch (e) { console.warn('[Users] notify queue error:', (e as Error).message); }
+      try {
+        await this.notifyQueue.add('notify', notifyPayload, { attempts: 3 });
+      } catch (e) {
+        console.warn('[Users] notify queue error:', (e as Error).message);
+      }
     }
 
     if (env.NODE_ENV === 'development') {
@@ -126,7 +146,11 @@ export class UsersService {
 
     const updated = await this.db.user.update({
       where: { id: userId },
-      data: { ...(dto.name && { name: dto.name }), ...(dto.role && { role: dto.role }), ...(dto.status && { status: dto.status }) },
+      data: {
+        ...(dto.name && { name: dto.name }),
+        ...(dto.role && { role: dto.role }),
+        ...(dto.status && { status: dto.status }),
+      },
       select: { id: true, email: true, name: true, role: true, status: true },
     });
     return { user: updated };

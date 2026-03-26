@@ -34,8 +34,7 @@ function StateBadge({ state }: { state: string }) {
 export default function VerifierQueuePage() {
   const { data, isLoading, isError } = useQuery<QueueResponse>({
     queryKey: ['verifier-queue'],
-    queryFn: () =>
-      evaluationsApi.listVerifierQueue(1, 50) as Promise<QueueResponse>,
+    queryFn: () => evaluationsApi.listVerifierQueue(1, 50) as Promise<QueueResponse>,
     refetchInterval: 30_000,
   });
 
@@ -104,7 +103,8 @@ export default function VerifierQueuePage() {
                         ?.externalId ?? item.conversationId.slice(0, 8)}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      {(item as { conversation?: { channel?: string } }).conversation?.channel ?? '—'}
+                      {(item as { conversation?: { channel?: string } }).conversation?.channel ??
+                        '—'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-700">
                       {(item as { conversation?: { agentName?: string | null } }).conversation
@@ -128,9 +128,7 @@ export default function VerifierQueuePage() {
                       <StateBadge state={item.workflowState} />
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
-                      {item.qaCompletedAt
-                        ? new Date(item.qaCompletedAt).toLocaleDateString()
-                        : '—'}
+                      {item.qaCompletedAt ? new Date(item.qaCompletedAt).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <Link href={`/qa-queue/${item.id}`}>

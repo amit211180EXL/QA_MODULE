@@ -9,7 +9,10 @@ export class UpdateEscalationRulesDto {
   @Max(100)
   qaDeviationThreshold?: number;
 
-  @ApiPropertyOptional({ default: 10, description: 'Verifier deviation % that triggers escalation' })
+  @ApiPropertyOptional({
+    default: 10,
+    description: 'Verifier deviation % that triggers escalation',
+  })
   @IsOptional()
   @IsNumber()
   @Min(0)

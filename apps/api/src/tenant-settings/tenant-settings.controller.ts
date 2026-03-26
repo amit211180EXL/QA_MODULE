@@ -21,20 +21,14 @@ export class TenantSettingsController {
   @Patch('escalation')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update escalation rules (Admin only)' })
-  async updateEscalation(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: UpdateEscalationRulesDto,
-  ) {
+  async updateEscalation(@CurrentUser() user: JwtPayload, @Body() dto: UpdateEscalationRulesDto) {
     return this.tenantSettingsService.upsertEscalationRules(user.tenantId, dto);
   }
 
   @Patch('blind-review')
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Update blind review settings (Admin only)' })
-  async updateBlindReview(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: UpdateBlindReviewDto,
-  ) {
+  async updateBlindReview(@CurrentUser() user: JwtPayload, @Body() dto: UpdateBlindReviewDto) {
     return this.tenantSettingsService.upsertBlindReview(user.tenantId, dto);
   }
 }

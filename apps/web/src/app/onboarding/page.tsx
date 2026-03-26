@@ -46,7 +46,7 @@ function LlmStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void })
     defaultValues: { enabled: true, provider: 'OPENAI', model: 'gpt-4o' },
   });
 
-  const enabled = (watch('enabled' as never) as unknown) as boolean;
+  const enabled = watch('enabled' as never) as unknown as boolean;
 
   const saveMutation = useMutation({
     mutationFn: (data: LlmFormValues) => llmApi.set(data as Record<string, unknown>),
@@ -67,7 +67,12 @@ function LlmStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void })
           <p className="text-sm text-gray-500">Connect your LLM to auto-fill QA forms</p>
         </div>
         <label className="relative inline-flex cursor-pointer items-center">
-          <input type="checkbox" className="peer sr-only" {...register('enabled' as never)} defaultChecked />
+          <input
+            type="checkbox"
+            className="peer sr-only"
+            {...register('enabled' as never)}
+            defaultChecked
+          />
           <div className="h-6 w-11 rounded-full bg-gray-200 peer-checked:bg-primary-600 transition-colors" />
         </label>
       </div>
@@ -109,13 +114,13 @@ function LlmStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void })
             Test connection
           </Button>
           {testResult === 'ok' && <Alert variant="success">Connection successful</Alert>}
-          {testResult === 'fail' && <Alert variant="error">Connection failed — check your credentials</Alert>}
+          {testResult === 'fail' && (
+            <Alert variant="error">Connection failed — check your credentials</Alert>
+          )}
         </>
       )}
 
-      {saveMutation.isError && (
-        <Alert variant="error">Failed to save. Please try again.</Alert>
-      )}
+      {saveMutation.isError && <Alert variant="error">Failed to save. Please try again.</Alert>}
 
       <div className="flex items-center justify-between pt-2">
         <button type="button" onClick={onSkip} className="text-sm text-gray-500 hover:underline">
@@ -165,14 +170,31 @@ function InviteStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
         <div className="rounded-lg bg-green-50 border border-green-200 p-3">
           <p className="text-sm font-medium text-green-800">Invited:</p>
           <ul className="mt-1 list-inside list-disc text-sm text-green-700">
-            {invited.map((e) => <li key={e}>{e}</li>)}
+            {invited.map((e) => (
+              <li key={e}>{e}</li>
+            ))}
           </ul>
         </div>
       )}
 
-      <form onSubmit={handleSubmit((d) => inviteMutation.mutate(d))} noValidate className="space-y-4">
-        <Input label="Email" type="email" placeholder="colleague@company.com" error={errors.email?.message} {...register('email')} />
-        <Input label="Name" placeholder="Jane Smith" error={errors.name?.message} {...register('name')} />
+      <form
+        onSubmit={handleSubmit((d) => inviteMutation.mutate(d))}
+        noValidate
+        className="space-y-4"
+      >
+        <Input
+          label="Email"
+          type="email"
+          placeholder="colleague@company.com"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <Input
+          label="Name"
+          placeholder="Jane Smith"
+          error={errors.name?.message}
+          {...register('name')}
+        />
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Role</label>
           <select
@@ -185,7 +207,11 @@ function InviteStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
           </select>
         </div>
         {inviteMutation.isError && <Alert variant="error">Failed to send invite.</Alert>}
-        <Button type="submit" variant="secondary" isLoading={isSubmitting || inviteMutation.isPending}>
+        <Button
+          type="submit"
+          variant="secondary"
+          isLoading={isSubmitting || inviteMutation.isPending}
+        >
           Send invite
         </Button>
       </form>
@@ -238,13 +264,17 @@ export default function OnboardingPage() {
                   i < step
                     ? 'bg-green-500 text-white'
                     : i === step
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-200 text-gray-500'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-200 text-gray-500'
                 }`}
               >
                 {i < step ? '✓' : i + 1}
               </div>
-              <span className={`text-sm ${i === step ? 'font-medium text-gray-900' : 'text-gray-500'}`}>{label}</span>
+              <span
+                className={`text-sm ${i === step ? 'font-medium text-gray-900' : 'text-gray-500'}`}
+              >
+                {label}
+              </span>
               {i < STEPS.length - 1 && <div className="h-px w-8 bg-gray-300" />}
             </div>
           ))}

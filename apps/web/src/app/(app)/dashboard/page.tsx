@@ -24,7 +24,11 @@ export default function DashboardPage() {
     { label: 'Pending QA', value: fmt(kpis?.pendingQA), sub: 'In queue' },
     { label: 'Pending Verifier', value: fmt(kpis?.pendingVerifier), sub: 'In queue' },
     { label: 'Avg Score', value: fmt(kpis?.avgFinalScore, 1), sub: 'Last 30 days' },
-    { label: 'Pass Rate', value: kpis?.passRate != null ? `${fmt(kpis.passRate, 1)}%` : '—', sub: 'Last 30 days' },
+    {
+      label: 'Pass Rate',
+      value: kpis?.passRate != null ? `${fmt(kpis.passRate, 1)}%` : '—',
+      sub: 'Last 30 days',
+    },
     { label: 'AI↔QA Deviation', value: fmt(kpis?.avgAiQaDeviation, 2), sub: 'Avg pts' },
   ];
 
@@ -60,13 +64,22 @@ export default function DashboardPage() {
             Set up your LLM config, build a QA form, and upload your first conversation.
           </p>
           <div className="mt-4 flex gap-3 flex-wrap">
-            <a href="/settings/llm" className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
+            <a
+              href="/settings/llm"
+              className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+            >
               Configure LLM
             </a>
-            <a href="/forms/new" className="rounded-lg border border-primary-300 bg-white px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50">
+            <a
+              href="/forms/new"
+              className="rounded-lg border border-primary-300 bg-white px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+            >
               Create QA Form
             </a>
-            <a href="/conversations/upload" className="rounded-lg border border-primary-300 bg-white px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50">
+            <a
+              href="/conversations/upload"
+              className="rounded-lg border border-primary-300 bg-white px-4 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50"
+            >
               Upload Conversations
             </a>
           </div>

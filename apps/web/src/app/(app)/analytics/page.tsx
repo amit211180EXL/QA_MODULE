@@ -92,7 +92,10 @@ export default function AnalyticsPage() {
           <DateRange
             from={fromDate}
             to={toDate}
-            onChange={(f, t) => { setFromDate(f); setToDate(t); }}
+            onChange={(f, t) => {
+              setFromDate(f);
+              setToDate(t);
+            }}
           />
         </div>
 
@@ -121,7 +124,9 @@ export default function AnalyticsPage() {
             <h3 className="font-semibold text-gray-800">Deviation Trends (by day)</h3>
           </div>
           {!trends || trends.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-gray-400">No deviation data for this period.</div>
+            <div className="px-5 py-8 text-center text-sm text-gray-400">
+              No deviation data for this period.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -160,7 +165,9 @@ export default function AnalyticsPage() {
           {agentsLoading ? (
             <div className="px-5 py-6 text-center text-sm text-gray-400">Loading…</div>
           ) : !agents || agents.length === 0 ? (
-            <div className="px-5 py-8 text-center text-sm text-gray-400">No evaluations completed in this period.</div>
+            <div className="px-5 py-8 text-center text-sm text-gray-400">
+              No evaluations completed in this period.
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -186,8 +193,8 @@ export default function AnalyticsPage() {
                             row.passRate >= 80
                               ? 'bg-green-100 text-green-700'
                               : row.passRate >= 60
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : 'bg-red-100 text-red-700'
+                                ? 'bg-yellow-100 text-yellow-700'
+                                : 'bg-red-100 text-red-700'
                           }`}
                         >
                           {row.passRate.toFixed(1)}%

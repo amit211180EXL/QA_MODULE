@@ -53,7 +53,13 @@ export class EvaluationsService {
         orderBy: { createdAt: 'desc' },
         include: {
           conversation: {
-            select: { channel: true, agentName: true, customerRef: true, receivedAt: true, externalId: true },
+            select: {
+              channel: true,
+              agentName: true,
+              customerRef: true,
+              receivedAt: true,
+              externalId: true,
+            },
           },
           workflowQueue: { select: { priority: true, dueBy: true, queueType: true } },
         },
@@ -85,7 +91,14 @@ export class EvaluationsService {
               formDefinitionId: true,
               formVersion: true,
               conversation: {
-                select: { id: true, channel: true, agentName: true, customerRef: true, receivedAt: true, externalId: true },
+                select: {
+                  id: true,
+                  channel: true,
+                  agentName: true,
+                  customerRef: true,
+                  receivedAt: true,
+                  externalId: true,
+                },
               },
             },
           },
@@ -119,7 +132,14 @@ export class EvaluationsService {
               formDefinitionId: true,
               formVersion: true,
               conversation: {
-                select: { id: true, channel: true, agentName: true, customerRef: true, receivedAt: true, externalId: true },
+                select: {
+                  id: true,
+                  channel: true,
+                  agentName: true,
+                  customerRef: true,
+                  receivedAt: true,
+                  externalId: true,
+                },
               },
             },
           },
@@ -145,7 +165,11 @@ export class EvaluationsService {
         workflowQueue: true,
       },
     });
-    if (!evaluation) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!evaluation)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
     return evaluation;
   }
 
@@ -154,7 +178,11 @@ export class EvaluationsService {
   async qaStart(tenantId: string, id: string, userId: string, actorRole: string) {
     const db = await this.getDb(tenantId);
     const ev = await db.evaluation.findUnique({ where: { id } });
-    if (!ev) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!ev)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
 
     if (ev.workflowState !== WorkflowState.QA_PENDING) {
       throw new ConflictException({
@@ -195,19 +223,35 @@ export class EvaluationsService {
 
   // ─── QA Submit ─────────────────────────────────────────────────────────────
 
-  async qaSubmit(tenantId: string, id: string, userId: string, actorRole: string, dto: QaSubmitDto) {
+  async qaSubmit(
+    tenantId: string,
+    id: string,
+    userId: string,
+    actorRole: string,
+    dto: QaSubmitDto,
+  ) {
     const db = await this.getDb(tenantId);
     const ev = await db.evaluation.findUnique({
       where: { id },
       include: { formDefinition: true },
     });
-    if (!ev) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!ev)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
 
     if (ev.workflowState !== WorkflowState.QA_IN_PROGRESS) {
-      throw new ConflictException({ code: 'ALREADY_SUBMITTED', message: 'Evaluation is not in QA_IN_PROGRESS state' });
+      throw new ConflictException({
+        code: 'ALREADY_SUBMITTED',
+        message: 'Evaluation is not in QA_IN_PROGRESS state',
+      });
     }
     if (ev.qaUserId !== userId) {
-      throw new ForbiddenException({ code: 'NOT_CLAIMED_BY_YOU', message: 'This evaluation was not claimed by you' });
+      throw new ForbiddenException({
+        code: 'NOT_CLAIMED_BY_YOU',
+        message: 'This evaluation was not claimed by you',
+      });
     }
 
     // Build adjusted answers on top of AI answers
@@ -239,7 +283,6 @@ export class EvaluationsService {
     );
 
     const now = new Date();
-
 
     // Compute deviation from AI score
     const deviations = [];
@@ -310,9 +353,16 @@ export class EvaluationsService {
   async verifierStart(tenantId: string, id: string, userId: string, actorRole: string) {
     const db = await this.getDb(tenantId);
     const ev = await db.evaluation.findUnique({ where: { id } });
-    if (!ev) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!ev)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
 
-    if (ev.workflowState !== WorkflowState.VERIFIER_PENDING && ev.workflowState !== WorkflowState.QA_COMPLETED) {
+    if (
+      ev.workflowState !== WorkflowState.VERIFIER_PENDING &&
+      ev.workflowState !== WorkflowState.QA_COMPLETED
+    ) {
       throw new ConflictException({
         code: 'INVALID_STATE',
         message: `Cannot claim evaluation in ${ev.workflowState} state`,
@@ -341,7 +391,9 @@ export class EvaluationsService {
           action: 'verifier_start',
           actorId: userId,
           actorRole,
-          metadata: { workflowState: { from: ev.workflowState, to: 'VERIFIER_IN_PROGRESS' } } as never,
+          metadata: {
+            workflowState: { from: ev.workflowState, to: 'VERIFIER_IN_PROGRESS' },
+          } as never,
         },
       }),
     ]);
@@ -354,10 +406,17 @@ export class EvaluationsService {
   async verifierApprove(tenantId: string, id: string, userId: string, actorRole: string) {
     const db = await this.getDb(tenantId);
     const ev = await db.evaluation.findUnique({ where: { id } });
-    if (!ev) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!ev)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
 
     if (ev.workflowState !== WorkflowState.VERIFIER_IN_PROGRESS) {
-      throw new ConflictException({ code: 'INVALID_STATE', message: 'Evaluation is not in VERIFIER_IN_PROGRESS state' });
+      throw new ConflictException({
+        code: 'INVALID_STATE',
+        message: 'Evaluation is not in VERIFIER_IN_PROGRESS state',
+      });
     }
     if (ev.verifierUserId !== userId) {
       throw new ForbiddenException({ code: 'NOT_CLAIMED_BY_YOU', message: 'Not claimed by you' });
@@ -395,7 +454,10 @@ export class EvaluationsService {
           action: 'verifier_approve',
           actorId: userId,
           actorRole,
-          metadata: { workflowState: { from: 'VERIFIER_IN_PROGRESS', to: 'LOCKED' }, finalScore } as never,
+          metadata: {
+            workflowState: { from: 'VERIFIER_IN_PROGRESS', to: 'LOCKED' },
+            finalScore,
+          } as never,
         },
       }),
     ]);
@@ -405,13 +467,26 @@ export class EvaluationsService {
 
   // ─── Verifier Modify + Approve ────────────────────────────────────────────
 
-  async verifierModify(tenantId: string, id: string, userId: string, actorRole: string, dto: VerifierModifyDto) {
+  async verifierModify(
+    tenantId: string,
+    id: string,
+    userId: string,
+    actorRole: string,
+    dto: VerifierModifyDto,
+  ) {
     const db = await this.getDb(tenantId);
     const ev = await db.evaluation.findUnique({ where: { id }, include: { formDefinition: true } });
-    if (!ev) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!ev)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
 
     if (ev.workflowState !== WorkflowState.VERIFIER_IN_PROGRESS) {
-      throw new ConflictException({ code: 'INVALID_STATE', message: 'Evaluation is not in VERIFIER_IN_PROGRESS' });
+      throw new ConflictException({
+        code: 'INVALID_STATE',
+        message: 'Evaluation is not in VERIFIER_IN_PROGRESS',
+      });
     }
     if (ev.verifierUserId !== userId) {
       throw new ForbiddenException({ code: 'NOT_CLAIMED_BY_YOU', message: 'Not claimed by you' });
@@ -421,7 +496,10 @@ export class EvaluationsService {
     const mergedAnswers: Record<string, AnswerRecord> = { ...(qaLayer?.answers ?? {}) };
     for (const [key, mod] of Object.entries(dto.modifiedAnswers)) {
       if (!mod.overrideReason) {
-        throw new BadRequestException({ code: 'MISSING_OVERRIDE_REASON', message: `overrideReason required for "${key}"` });
+        throw new BadRequestException({
+          code: 'MISSING_OVERRIDE_REASON',
+          message: `overrideReason required for "${key}"`,
+        });
       }
       mergedAnswers[key] = { value: mod.value, overrideReason: mod.overrideReason };
     }
@@ -434,7 +512,12 @@ export class EvaluationsService {
     );
 
     const now = new Date();
-    const verifierLayer = { answers: mergedAnswers, sectionScores: scoreResult.sectionScores, overallScore: scoreResult.overallScore, passFail: scoreResult.passFail };
+    const verifierLayer = {
+      answers: mergedAnswers,
+      sectionScores: scoreResult.sectionScores,
+      overallScore: scoreResult.overallScore,
+      passFail: scoreResult.passFail,
+    };
 
     // Compute QA→Verifier deviation
     const deviations = [];
@@ -482,18 +565,35 @@ export class EvaluationsService {
       }),
     ]);
 
-    return { workflowState: WorkflowState.LOCKED, finalScore: scoreResult.overallScore, passFail: scoreResult.passFail };
+    return {
+      workflowState: WorkflowState.LOCKED,
+      finalScore: scoreResult.overallScore,
+      passFail: scoreResult.passFail,
+    };
   }
 
   // ─── Verifier Reject ──────────────────────────────────────────────────────
 
-  async verifierReject(tenantId: string, id: string, userId: string, actorRole: string, dto: VerifierRejectDto) {
+  async verifierReject(
+    tenantId: string,
+    id: string,
+    userId: string,
+    actorRole: string,
+    dto: VerifierRejectDto,
+  ) {
     const db = await this.getDb(tenantId);
     const ev = await db.evaluation.findUnique({ where: { id } });
-    if (!ev) throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    if (!ev)
+      throw new NotFoundException({
+        code: 'EVALUATION_NOT_FOUND',
+        message: 'Evaluation not found',
+      });
 
     if (ev.workflowState !== WorkflowState.VERIFIER_IN_PROGRESS) {
-      throw new ConflictException({ code: 'INVALID_STATE', message: 'Evaluation is not in VERIFIER_IN_PROGRESS' });
+      throw new ConflictException({
+        code: 'INVALID_STATE',
+        message: 'Evaluation is not in VERIFIER_IN_PROGRESS',
+      });
     }
 
     const now = new Date();
@@ -520,7 +620,10 @@ export class EvaluationsService {
           action: 'verifier_reject',
           actorId: userId,
           actorRole,
-          metadata: { reason: dto.reason, workflowState: { from: 'VERIFIER_IN_PROGRESS', to: 'QA_PENDING' } } as never,
+          metadata: {
+            reason: dto.reason,
+            workflowState: { from: 'VERIFIER_IN_PROGRESS', to: 'QA_PENDING' },
+          } as never,
         },
       }),
     ]);

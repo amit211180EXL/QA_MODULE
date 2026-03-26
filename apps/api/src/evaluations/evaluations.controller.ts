@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Query,
-  HttpCode,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { EvaluationsService } from './evaluations.service';
 import {
@@ -41,7 +32,11 @@ export class EvaluationsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.evaluationsService.getQaQueue(user.tenantId, Number(page ?? 1), Number(limit ?? 20));
+    return this.evaluationsService.getQaQueue(
+      user.tenantId,
+      Number(page ?? 1),
+      Number(limit ?? 20),
+    );
   }
 
   @Get('queue/verifier')
@@ -52,7 +47,11 @@ export class EvaluationsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.evaluationsService.getVerifierQueue(user.tenantId, Number(page ?? 1), Number(limit ?? 20));
+    return this.evaluationsService.getVerifierQueue(
+      user.tenantId,
+      Number(page ?? 1),
+      Number(limit ?? 20),
+    );
   }
 
   @Post('preview-score')
