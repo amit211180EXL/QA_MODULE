@@ -15,16 +15,25 @@ import { getEnv } from '@qa/config';
 @Injectable()
 export class ConversationsService {
   private readonly masterDb = getMasterClient();
-  private readonly evalQueue: Queue<EvalProcessJobPayload>;
+  private readonly evalQueue: Queue<EvalProcessJobPayload> | null = null;
 
   constructor(
     @Inject(TenantConnectionPool)
     private readonly pool: TenantConnectionPool,
   ) {
     const env = getEnv();
-    this.evalQueue = new Queue(QUEUE_NAMES.EVAL_PROCESS, {
-      connection: { host: env.REDIS_HOST, port: env.REDIS_PORT, password: env.REDIS_PASSWORD },
-    });
+    if (env.REDIS_ENABLED !== 'false') {
+      this.evalQueue = new Queue(QUEUE_NAMES.EVAL_PROCESS, {
+        connection: {
+          host: env.REDIS_HOST,
+          port: env.REDIS_PORT,
+          password: env.REDIS_PASSWORD,
+          maxRetriesPerRequest: 1,
+          connectTimeout: 3000,
+          lazyConnect: true,
+        },
+      });
+    }
   }
 
   private async getTenantDb(tenantId: string) {
@@ -149,17 +158,23 @@ export class ConversationsService {
           },
         });
 
-        await this.evalQueue.add(
-          'eval:process',
-          {
-            tenantId,
-            conversationId: conv.id,
-            evaluationId: evaluation.id,
-            formDefinitionId: activeForm.id,
-            formVersion: activeForm.version,
-          },
-          { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
-        );
+        if (this.evalQueue) {
+          try {
+            await this.evalQueue.add(
+              'eval-process',
+              {
+                tenantId,
+                conversationId: conv.id,
+                evaluationId: evaluation.id,
+                formDefinitionId: activeForm.id,
+                formVersion: activeForm.version,
+              },
+              { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
+            );
+          } catch (queueErr) {
+            console.warn('[Conversations] Failed to enqueue eval job:', (queueErr as Error).message);
+          }
+        }
       }
     }
 

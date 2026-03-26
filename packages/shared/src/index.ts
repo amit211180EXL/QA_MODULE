@@ -335,12 +335,12 @@ export interface JwtPayload {
 // ─── Queue Names ───────────────────────────────────────────────────────────────
 
 export const QUEUE_NAMES = {
-  EVAL_PROCESS: 'eval:process',
-  EVAL_ESCALATE: 'eval:escalate',
-  QUEUE_STALE_CHECK: 'queue:stale-check',
-  TENANT_PROVISION: 'tenant:provision',
-  BILLING_USAGE_SYNC: 'billing:usage-sync',
-  NOTIFY_SEND: 'notify:send',
-  REPORT_EXPORT: 'report:export',
-  POOL_REAP: 'pool:reap',
+  EVAL_PROCESS: 'eval-process',
+  EVAL_ESCALATE: 'eval-escalate',
+  QUEUE_STALE_CHECK: 'queue-stale-check',
+  TENANT_PROVISION: 'tenant-provision',
+  BILLING_USAGE_SYNC: 'billing-usage-sync',
+  NOTIFY_SEND: 'notify-send',
+  REPORT_EXPORT: 'report-export',
+  POOL_REAP: 'pool-reap',
 } as const;

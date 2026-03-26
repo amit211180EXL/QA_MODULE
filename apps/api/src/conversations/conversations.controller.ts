@@ -16,7 +16,7 @@ import { JwtPayload } from '@qa/shared';
 
 @ApiTags('Conversations')
 @ApiBearerAuth()
-@Controller('api/v1/conversations')
+@Controller('conversations')
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 

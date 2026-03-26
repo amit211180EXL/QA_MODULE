@@ -19,16 +19,18 @@ import Redis from 'ioredis';
 @Injectable()
 export class UsersService {
   private readonly db = getMasterClient();
-  private readonly notifyQueue: Queue;
+  private readonly notifyQueue: Queue | null = null;
 
   constructor(
     private readonly jwtService: JwtService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {
     const env = getEnv();
-    this.notifyQueue = new Queue(QUEUE_NAMES.NOTIFY_SEND, {
-      connection: { host: env.REDIS_HOST, port: env.REDIS_PORT, password: env.REDIS_PASSWORD },
-    });
+    if (env.REDIS_ENABLED !== 'false') {
+      this.notifyQueue = new Queue(QUEUE_NAMES.NOTIFY_SEND, {
+        connection: { host: env.REDIS_HOST, port: env.REDIS_PORT, password: env.REDIS_PASSWORD },
+      });
+    }
   }
 
   async listUsers(tenantId: string) {
@@ -94,7 +96,9 @@ export class UsersService {
       recipientIds: [user.id],
       data: { inviteToken, invitedByName: invitedBy.sub, acceptUrl: `${env.API_URL}/accept-invite` },
     };
-    await this.notifyQueue.add('notify', notifyPayload, { attempts: 3 });
+    if (this.notifyQueue) {
+      try { await this.notifyQueue.add('notify', notifyPayload, { attempts: 3 }); } catch (e) { console.warn('[Users] notify queue error:', (e as Error).message); }
+    }
 
     if (env.NODE_ENV === 'development') {
       console.log(`[DEV] Invite token for ${dto.email}: ${inviteToken}`);

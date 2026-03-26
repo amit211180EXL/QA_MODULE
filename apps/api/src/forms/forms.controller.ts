@@ -17,7 +17,7 @@ import { JwtPayload, UserRole } from '@qa/shared';
 
 @ApiTags('Forms')
 @ApiBearerAuth()
-@Controller('api/v1/forms')
+@Controller('forms')
 export class FormsController {
   constructor(private readonly formsService: FormsService) {}
 

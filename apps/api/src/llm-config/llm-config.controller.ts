@@ -16,7 +16,7 @@ import { JwtPayload, UserRole } from '@qa/shared';
 
 @ApiTags('LLM Config')
 @ApiBearerAuth()
-@Controller('api/v1/llm-config')
+@Controller('llm-config')
 export class LlmConfigController {
   constructor(private readonly llmConfigService: LlmConfigService) {}
 

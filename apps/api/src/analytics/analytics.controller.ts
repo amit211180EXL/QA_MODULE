@@ -8,7 +8,7 @@ import { JwtPayload, UserRole } from '@qa/shared';
 @ApiTags('Analytics')
 @ApiBearerAuth()
 @Roles(UserRole.ADMIN)
-@Controller('api/v1/analytics')
+@Controller('analytics')
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 

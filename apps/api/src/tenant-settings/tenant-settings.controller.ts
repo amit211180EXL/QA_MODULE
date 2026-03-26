@@ -8,7 +8,7 @@ import { JwtPayload, UserRole } from '@qa/shared';
 
 @ApiTags('Tenant Settings')
 @ApiBearerAuth()
-@Controller('api/v1/settings')
+@Controller('settings')
 export class TenantSettingsController {
   constructor(private readonly tenantSettingsService: TenantSettingsService) {}
 

@@ -24,16 +24,25 @@ const PASSWORD_RESET_TTL_S = 15 * 60; // 15 minutes
 @Injectable()
 export class AuthService {
   private readonly db = getMasterClient();
-  private readonly provisionQueue: Queue;
+  private readonly provisionQueue: Queue | null = null;
 
   constructor(
     private readonly jwtService: JwtService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
   ) {
     const env = getEnv();
-    this.provisionQueue = new Queue(QUEUE_NAMES.TENANT_PROVISION, {
-      connection: { host: env.REDIS_HOST, port: env.REDIS_PORT, password: env.REDIS_PASSWORD },
-    });
+    if (env.REDIS_ENABLED !== 'false') {
+      this.provisionQueue = new Queue(QUEUE_NAMES.TENANT_PROVISION, {
+        connection: {
+          host: env.REDIS_HOST,
+          port: env.REDIS_PORT,
+          password: env.REDIS_PASSWORD,
+          maxRetriesPerRequest: 1,
+          connectTimeout: 3000,
+          lazyConnect: true,
+        },
+      });
+    }
   }
 
   // ─── Signup ──────────────────────────────────────────────────────────────────
@@ -58,7 +67,7 @@ export class AuthService {
             name: dto.adminName,
             passwordHash,
             role: 'ADMIN',
-            status: 'INVITED',
+            status: 'ACTIVE',
           },
         },
         subscription: {
@@ -76,18 +85,26 @@ export class AuthService {
 
     const admin = tenant.users[0];
 
-    // Enqueue provisioning job
+    // Enqueue provisioning job (non-fatal in dev if Redis is unavailable)
     const payload: TenantProvisionJobPayload = {
       tenantId: tenant.id,
       tenantSlug: tenant.slug,
       adminUserId: admin.id,
       plan: tenant.plan as PlanType,
     };
-    await this.provisionQueue.add('provision', payload, {
-      attempts: 2,
-      backoff: { type: 'fixed', delay: 10_000 },
-      removeOnComplete: { count: 100 },
-    });
+    if (this.provisionQueue) {
+      try {
+        await this.provisionQueue.add('provision', payload, {
+          attempts: 2,
+          backoff: { type: 'fixed', delay: 10_000 },
+          removeOnComplete: { count: 100 },
+        });
+      } catch (queueErr) {
+        console.warn('[Auth] Failed to enqueue provision job:', (queueErr as Error).message);
+      }
+    } else {
+      console.warn('[Auth] Redis disabled — skipping tenant provision job for', tenant.slug);
+    }
 
     const { accessToken, refreshToken } = await this.issueTokens(admin.id, tenant.id, admin.role as UserRole);
 
@@ -193,7 +210,11 @@ export class AuthService {
     const token = randomBytes(32).toString('hex');
     const tokenHash = this.hashToken(token);
     const ttl = PASSWORD_RESET_TTL_S;
-    await this.redis.set(`pwd_reset:${tokenHash}`, user.id, 'EX', ttl);
+
+    const env = getEnv();
+    if (env.REDIS_ENABLED !== 'false') {
+      await this.redis.set(`pwd_reset:${tokenHash}`, user.id, 'EX', ttl);
+    }
 
     // TODO: enqueue notify:send[password_reset] with reset link
     // For now log in dev only
@@ -205,7 +226,13 @@ export class AuthService {
   // ─── Reset Password ───────────────────────────────────────────────────────────
 
   async resetPassword(dto: ResetPasswordDto): Promise<void> {
+    const env = getEnv();
     const tokenHash = this.hashToken(dto.token);
+
+    if (env.REDIS_ENABLED === 'false') {
+      throw new BadRequestException({ code: 'FEATURE_UNAVAILABLE', message: 'Password reset requires Redis. Please contact your administrator.' });
+    }
+
     const userId = await this.redis.get(`pwd_reset:${tokenHash}`);
     if (!userId) {
       throw new BadRequestException({ code: 'INVALID_RESET_TOKEN', message: 'Reset token is invalid or expired' });

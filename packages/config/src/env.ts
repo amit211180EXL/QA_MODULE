@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import { config as loadDotenv } from 'dotenv';
+import { resolve } from 'path';
+
+// Load .env from the app that consumes this package (walk up from cwd)
+loadDotenv({ path: resolve(process.cwd(), '.env') });
 
 const envSchema = z.object({
   // Application
@@ -10,6 +15,7 @@ const envSchema = z.object({
   MASTER_DATABASE_URL: z.string().min(1),
 
   // Redis
+  REDIS_ENABLED: z.enum(['true', 'false']).default('true'),
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),

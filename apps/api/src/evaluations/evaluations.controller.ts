@@ -23,7 +23,7 @@ import { JwtPayload, UserRole } from '@qa/shared';
 
 @ApiTags('Evaluations')
 @ApiBearerAuth()
-@Controller('api/v1/evaluations')
+@Controller('evaluations')
 export class EvaluationsController {
   constructor(private readonly evaluationsService: EvaluationsService) {}
 
