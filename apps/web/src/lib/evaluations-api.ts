@@ -106,14 +106,14 @@ export const evaluationsApi = {
   listQaQueue: (page = 1, limit = 20) =>
     api
       .get<{ items: EvaluationDetail[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
-        `/api/v1/evaluations/queue/qa?page=${page}&limit=${limit}`,
+        `/evaluations/queue/qa?page=${page}&limit=${limit}`,
       )
       .then((r) => r.data),
 
   listVerifierQueue: (page = 1, limit = 20) =>
     api
       .get<{ items: EvaluationDetail[]; pagination: { page: number; limit: number; total: number; totalPages: number } }>(
-        `/api/v1/evaluations/queue/verifier?page=${page}&limit=${limit}`,
+        `/evaluations/queue/verifier?page=${page}&limit=${limit}`,
       )
       .then((r) => r.data),
 };

@@ -1,36 +1,17 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api-client';
+import { evaluationsApi, type EvaluationDetail } from '@/lib/evaluations-api';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface QueueItem {
-  id: string;
-  conversationId: string;
-  workflowState: string;
-  aiScore: number | null;
-  qaUserId: string | null;
-  qaStartedAt: string | null;
-  lockedAt: string | null;
-  conversation: {
-    externalId: string | null;
-    channel: string;
-    agentName: string | null;
-    customerRef: string | null;
-    receivedAt: string;
-  };
-}
+type QueueItem = EvaluationDetail;
 
 interface QueueResponse {
-  data: {
-    items: QueueItem[];
-    pagination: { page: number; limit: number; total: number; totalPages: number };
-  };
+  items: QueueItem[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
 // ─── State badge ──────────────────────────────────────────────────────────────
@@ -57,12 +38,12 @@ function StateBadge({ state }: { state: string }) {
 export default function QaQueuePage() {
   const { data, isLoading, isError } = useQuery<QueueResponse>({
     queryKey: ['qa-queue'],
-    queryFn: () => api.get<QueueResponse>('/qa-queue').then((r) => r.data),
+    queryFn: () => evaluationsApi.listQaQueue(1, 50),
     refetchInterval: 30_000,
   });
 
-  const items: QueueItem[] = data?.data?.items ?? [];
-  const total = data?.data?.pagination?.total ?? 0;
+  const items: QueueItem[] = data?.items ?? [];
+  const total = data?.pagination?.total ?? 0;
 
   return (
     <div>

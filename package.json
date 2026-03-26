@@ -13,7 +13,8 @@
     "type-check": "pnpm --recursive type-check",
     "test": "pnpm --recursive test",
     "test:e2e": "pnpm --filter api test:e2e",
-    "db:migrate:master": "pnpm --filter prisma-master migrate:dev",
+    "dev:provision": "node scripts/dev-provision.cjs",
+    "dev:provision:all": "node scripts/dev-provision.cjs",
     "db:migrate:deploy": "pnpm --filter prisma-master migrate:deploy",
     "db:generate": "pnpm --recursive db:generate"
   },
