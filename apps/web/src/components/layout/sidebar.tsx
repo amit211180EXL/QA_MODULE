@@ -34,7 +34,6 @@ const NAV_ITEMS: NavItem[] = [
     href: '/verifier-queue',
     icon: ShieldCheck,
     roles: [UserRole.VERIFIER, UserRole.ADMIN],
-    disabled: true,
   },
   { label: 'Forms', href: '/forms', icon: FileText, roles: [UserRole.ADMIN] },
   {
@@ -42,10 +41,9 @@ const NAV_ITEMS: NavItem[] = [
     href: '/analytics',
     icon: BarChart2,
     roles: [UserRole.ADMIN],
-    disabled: true,
   },
   { label: 'Users', href: '/users', icon: Users, roles: [UserRole.ADMIN] },
-  { label: 'LLM Settings', href: '/settings/llm', icon: Settings, roles: [UserRole.ADMIN] },
+  { label: 'Settings', href: '/settings', icon: Settings, roles: [UserRole.ADMIN] },
 ];
 
 export function Sidebar() {

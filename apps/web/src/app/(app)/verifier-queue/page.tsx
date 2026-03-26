@@ -131,7 +131,7 @@ export default function VerifierQueuePage() {
                       {item.qaCompletedAt ? new Date(item.qaCompletedAt).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/qa-queue/${item.id}`}>
+                      <Link href={`/verifier-queue/${item.id}`}>
                         <Button size="sm" variant="secondary">
                           Review
                         </Button>
