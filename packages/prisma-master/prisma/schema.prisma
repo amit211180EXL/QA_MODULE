@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/master-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MASTER_DATABASE_URL")
+}
+
+// ─── TENANT ───────────────────────────────────────────────────────────────────
+
+model Tenant {
+  id            String       @id @default(cuid())
+  slug          String       @unique
+  name          String
+  plan          PlanType     @default(BASIC)
+  status        TenantStatus @default(PROVISIONING)
+  dbHost        String       @default("")
+  dbPort        Int          @default(5432)
+  dbName        String       @default("")
+  dbUser        String       @default("")
+  dbPasswordEnc String       @default("")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  users               User[]
+  subscription        Subscription?
+  llmConfig           LlmConfig?
+  escalationRules     EscalationRule[]
+  blindReviewSettings BlindReviewSettings?
+  usageMetrics        UsageMetric[]
+
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  CANCELLED
+}
+
+enum PlanType {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+// ─── USERS ────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String     @id @default(cuid())
+  tenantId     String
+  email        String
+  passwordHash String
+  name         String
+  role         UserRole
+  status       UserStatus @default(INVITED)
+  lastLoginAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  QA
+  VERIFIER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  INVITED
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─── SUBSCRIPTIONS & BILLING ──────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  tenantId             String             @unique
+  plan                 PlanType
+  status               SubscriptionStatus @default(TRIALING)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  trialEndsAt          DateTime?
+  cancelledAt          DateTime?
+  stripeSubscriptionId String?            @unique
+  stripeCustomerId     String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@map("subscriptions")
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  EXPIRED
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  subscriptionId  String
+  amount          Int
+  currency        String        @default("USD")
+  status          InvoiceStatus
+  stripeInvoiceId String?       @unique
+  paidAt          DateTime?
+  dueAt           DateTime
+  createdAt       DateTime      @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+// ─── LLM CONFIG ───────────────────────────────────────────────────────────────
+
+model LlmConfig {
+  id              String       @id @default(cuid())
+  tenantId        String       @unique
+  enabled         Boolean      @default(true)
+  provider        LlmProvider
+  model           String
+  endpoint        String?
+  apiKeyEnc       String
+  backupProvider  LlmProvider?
+  backupModel     String?
+  backupApiKeyEnc String?
+  maxTokens       Int          @default(4000)
+  temperature     Float        @default(0.1)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("llm_configs")
+}
+
+enum LlmProvider {
+  OPENAI
+  AZURE_OPENAI
+  CUSTOM
+}
+
+// ─── ESCALATION & BLIND REVIEW ────────────────────────────────────────────────
+
+model EscalationRule {
+  id                         String   @id @default(cuid())
+  tenantId                   String
+  qaDeviationThreshold       Float    @default(15)
+  verifierDeviationThreshold Float    @default(10)
+  staleQueueHours            Int      @default(24)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("escalation_rules")
+}
+
+model BlindReviewSettings {
+  id                 String   @id @default(cuid())
+  tenantId           String   @unique
+  hideAgentFromQA    Boolean  @default(false)
+  hideQAFromVerifier Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("blind_review_settings")
+}
+
+// ─── USAGE METRICS ────────────────────────────────────────────────────────────
+
+model UsageMetric {
+  id                     String   @id @default(cuid())
+  tenantId               String
+  periodStart            DateTime
+  periodEnd              DateTime
+  conversationsProcessed Int      @default(0)
+  aiTokensUsed           BigInt   @default(0)
+  aiCostCents            Int      @default(0)
+  activeUsers            Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, periodStart, periodEnd])
+  @@index([tenantId])
+  @@map("usage_metrics")
+}

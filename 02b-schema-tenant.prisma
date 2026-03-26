@@ -1,0 +1,303 @@
+// ============================================================
+// TENANT DB SCHEMA — one instance per customer tenant
+// File: prisma/schema.tenant.prisma
+// ============================================================
+//
+// NOTE: In the application, PrismaClient is instantiated
+// dynamically per request using the tenant's decrypted
+// DB credentials fetched from Master DB (cached in Redis).
+// The `TENANT_DATABASE_URL` env var shown here is a
+// placeholder for the Prisma CLI tooling only.
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/tenant-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// CONVERSATIONS
+// ─────────────────────────────────────────────
+
+model Conversation {
+  id          String     @id @default(cuid())
+  externalId  String?    @unique   // CRM / webhook source ID for dedup
+  channel     Channel
+  agentId     String?               // raw internal agent ref (masked in blind review)
+  agentHash   String?               // deterministic hash used in blind review mode
+  agentName   String?
+  customerRef String?
+  content     Json                  // normalized conversation body
+  metadata    Json?                 // source-specific meta (timestamps, session IDs, etc.)
+  status      ConvStatus @default(PENDING)
+  receivedAt  DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  evaluation Evaluation?
+
+  @@index([channel])
+  @@index([status])
+  @@index([agentId])
+  @@index([receivedAt])
+  @@map("conversations")
+}
+
+enum Channel {
+  CHAT
+  EMAIL
+  CALL
+  SOCIAL
+}
+
+enum ConvStatus {
+  PENDING
+  EVALUATING
+  QA_REVIEW
+  VERIFIER_REVIEW
+  COMPLETED
+  FAILED
+}
+
+// ─────────────────────────────────────────────
+// FORM DEFINITIONS (VERSIONED, IMMUTABLE ONCE PUBLISHED)
+// ─────────────────────────────────────────────
+//
+// JSON shape for `sections`:
+// [{ id, title, weight, order }]
+//
+// JSON shape for `questions`:
+// [{
+//   id, sectionId, key, label, type, required, weight, order,
+//   validation: { min, max, maxLength, pattern },
+//   rubric: { goal, anchors: [{ value, label, description }] },
+//   options: [{ value, label }],           // for select / multiselect
+//   conditionalLogic: { showIf: { questionKey, operator, value } }
+// }]
+//
+// JSON shape for `scoringStrategy`:
+// { type: "weighted_sections", passMark: 70, scale: 100, roundingPolicy: "round" }
+// ─────────────────────────────────────────────
+
+model FormDefinition {
+  id              String     @id @default(cuid())
+  formKey         String                // stable business key across versions e.g. "customer_support_v1"
+  version         Int
+  name            String
+  description     String?
+  status          FormStatus @default(DRAFT)
+  channels        Json                  // Channel[]  — which channels this form applies to
+  scoringStrategy Json                  // ScoringStrategyConfig
+  sections        Json                  // FormSection[]
+  questions       Json                  // FormQuestion[]
+  metadata        Json?                 // { createdBy, publishedAt, deprecatedAt, tags }
+  publishedAt     DateTime?
+  deprecatedAt    DateTime?
+  archivedAt      DateTime?
+  createdById     String                // user ID from master DB
+  createdAt       DateTime   @default(now())
+
+  evaluations Evaluation[]
+
+  @@unique([formKey, version])
+  @@index([formKey, status])
+  @@map("form_definitions")
+}
+
+enum FormStatus {
+  DRAFT
+  PUBLISHED
+  DEPRECATED
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────────
+// EVALUATIONS — core entity with layered response model
+// ─────────────────────────────────────────────
+//
+// Layered response data shapes (stored as JSON):
+//
+// aiResponseData / qaAdjustedData / verifierFinalData / finalResponseData:
+// {
+//   answers: {
+//     [questionKey]: {
+//       value: any,              // the actual answer
+//       reasoning: string,       // AI: generated; QA/Verifier: optional note
+//       confidence: number,      // 0..1, AI only
+//       overrideReason: string   // QA/Verifier only
+//     }
+//   },
+//   sectionScores: { [sectionId]: number },
+//   overallScore: number,
+//   passFail: boolean
+// }
+// ─────────────────────────────────────────────
+
+model Evaluation {
+  id               String        @id @default(cuid())
+  conversationId   String        @unique
+  formDefinitionId String
+  formVersion      Int
+
+  workflowState    WorkflowState @default(AI_PENDING)
+
+  // Layered response model
+  aiResponseData      Json?    // immutable after AI completes — never mutated
+  qaAdjustedData      Json?    // delta: only changed answers + QA-computed scores
+  verifierFinalData   Json?    // delta: verifier changes
+  finalResponseData   Json?    // resolved: computed from layers at lock time
+
+  // Scores (denormalized for query performance)
+  aiScore           Float?
+  qaScore           Float?
+  verifierScore     Float?
+  finalScore        Float?
+  passFail          Boolean?
+
+  // AI metadata
+  aiMetadata        Json?        // { provider, model, promptTokens, completionTokens, costCents, durationMs }
+  aiCompletedAt     DateTime?
+
+  // QA fields
+  qaUserId          String?
+  qaStartedAt       DateTime?
+  qaCompletedAt     DateTime?
+
+  // Verifier fields
+  verifierUserId    String?
+  verifierStartedAt  DateTime?
+  verifierCompletedAt DateTime?
+  verifierRejectedAt  DateTime?
+  verifierRejectReason String?
+
+  // Lock
+  lockedAt          DateTime?
+
+  // Routing
+  confidenceScore   Float?
+  isEscalated       Boolean      @default(false)
+  escalationReason  String?
+
+  flags             Json?        // string[] — reviewer-raised flags
+  feedback          String?
+
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  conversation      Conversation    @relation(fields: [conversationId], references: [id])
+  formDefinition    FormDefinition  @relation(fields: [formDefinitionId], references: [id])
+  auditLogs         AuditLog[]
+  deviationRecords  DeviationRecord[]
+  workflowQueue     WorkflowQueue?
+
+  @@index([workflowState])
+  @@index([qaUserId])
+  @@index([verifierUserId])
+  @@index([formDefinitionId, formVersion])
+  @@index([finalScore])
+  @@index([createdAt])
+  @@map("evaluations")
+}
+
+enum WorkflowState {
+  AI_PENDING
+  AI_IN_PROGRESS
+  AI_COMPLETED
+  AI_FAILED        // triggers QA_PENDING with flag
+  QA_PENDING
+  QA_IN_PROGRESS
+  QA_COMPLETED
+  VERIFIER_PENDING
+  VERIFIER_IN_PROGRESS
+  VERIFIER_COMPLETED
+  LOCKED           // terminal: final_score immutable
+  ESCALATED        // side-effect state — still progresses through workflow
+}
+
+// ─────────────────────────────────────────────
+// DEVIATION RECORDS
+// ─────────────────────────────────────────────
+
+model DeviationRecord {
+  id           String        @id @default(cuid())
+  evaluationId String
+  type         DeviationType
+  scoreA       Float
+  scoreB       Float
+  deviation    Float         // abs(scoreA - scoreB)
+  questionKey  String?       // null = overall score deviation
+  sectionId    String?
+  createdAt    DateTime      @default(now())
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([evaluationId])
+  @@index([type])
+  @@index([questionKey])
+  @@map("deviation_records")
+}
+
+enum DeviationType {
+  AI_VS_QA
+  QA_VS_VERIFIER
+}
+
+// ─────────────────────────────────────────────
+// WORKFLOW QUEUE
+// ─────────────────────────────────────────────
+
+model WorkflowQueue {
+  id           String    @id @default(cuid())
+  evaluationId String    @unique
+  priority     Int       @default(5)   // 1=highest, 10=lowest
+  queueType    QueueType
+  assignedTo   String?               // user ID from master DB
+  dueBy        DateTime?             // SLO deadline for escalation
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([queueType, priority])
+  @@index([assignedTo])
+  @@index([dueBy])
+  @@map("workflow_queues")
+}
+
+enum QueueType {
+  QA_QUEUE
+  VERIFIER_QUEUE
+  ESCALATION_QUEUE
+  AUDIT_QUEUE
+}
+
+// ─────────────────────────────────────────────
+// AUDIT LOGS — append-only, never updated
+// ─────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  evaluationId String?
+  entityType   String   // "evaluation" | "form_definition" | "conversation" | etc.
+  entityId     String
+  action       String   // e.g. "ai.completed", "qa.submitted", "verifier.approved", "form.published"
+  actorId      String   // user ID (or "system" for automated actions)
+  actorRole    String
+  before       Json?    // snapshot before change (relevant fields only)
+  after        Json?    // snapshot after change
+  metadata     Json?    // extra context (IP, user-agent, job ID, etc.)
+  createdAt    DateTime @default(now())
+
+  evaluation Evaluation? @relation(fields: [evaluationId], references: [id])
+
+  @@index([evaluationId])
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

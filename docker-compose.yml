@@ -1,0 +1,98 @@
+version: '3.9'
+
+services:
+  # ─── Master PostgreSQL ──────────────────────────────────────
+  postgres-master:
+    image: postgres:16-alpine
+    container_name: qa_postgres_master
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: qa_master
+      POSTGRES_USER: qa_master
+      POSTGRES_PASSWORD: masterpass
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_master_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U qa_master -d qa_master']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Tenant PostgreSQL (dev tenants share one instance) ─────
+  postgres-tenant:
+    image: postgres:16-alpine
+    container_name: qa_postgres_tenant
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: qa_superuser
+      POSTGRES_PASSWORD: superpass
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_tenant_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U qa_superuser']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── Redis ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: qa_redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─── API Server ─────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: qa_api
+    restart: unless-stopped
+    depends_on:
+      postgres-master:
+        condition: service_healthy
+      postgres-tenant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      API_URL: http://localhost:3000
+      MASTER_DATABASE_URL: postgresql://qa_master:masterpass@postgres-master:5432/qa_master
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev_jwt_secret_must_be_32_chars_min
+      JWT_EXPIRES_IN: 15m
+      REFRESH_SECRET: dev_refresh_secret_must_be_32_char
+      REFRESH_EXPIRES_IN: 30d
+      MASTER_ENCRYPTION_KEY: 0000000000000000000000000000000000000000000000000000000000000000
+      TENANT_DB_HOST: postgres-tenant
+      TENANT_DB_PORT: 5432
+      TENANT_DB_SUPERUSER: qa_superuser
+      TENANT_DB_SUPERUSER_PASSWORD: superpass
+      EMAIL_FROM: noreply@dev.local
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/api/src:/app/apps/api/src   # hot-reload in dev
+    command: pnpm --filter api dev
+
+volumes:
+  postgres_master_data:
+  postgres_tenant_data:
+  redis_data:

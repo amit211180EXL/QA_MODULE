@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─── Lint ──────────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+
+  # ─── Type Check ───────────────────────────────────────────────────────────────
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter @qa/prisma-master db:generate
+          pnpm --filter @qa/prisma-tenant db:generate
+      - run: pnpm type-check
+
+  # ─── Unit Tests ───────────────────────────────────────────────────────────────
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter @qa/prisma-master db:generate
+          pnpm --filter @qa/prisma-tenant db:generate
+      - run: pnpm test -- --passWithNoTests
+
+  # ─── Build ────────────────────────────────────────────────────────────────────
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, type-check]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter @qa/prisma-master db:generate
+          pnpm --filter @qa/prisma-tenant db:generate
+      - name: Build packages
+        run: |
+          pnpm --filter @qa/config build
+          pnpm --filter @qa/shared build
+          pnpm --filter @qa/prisma-master build
+          pnpm --filter @qa/prisma-tenant build
+      - name: Build API
+        run: pnpm --filter api build
+
+  # ─── Integration Tests ────────────────────────────────────────────────────────
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    services:
+      postgres-master:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: qa_master
+          POSTGRES_USER: qa_master
+          POSTGRES_PASSWORD: masterpass
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      postgres-tenant:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: qa_superuser
+          POSTGRES_PASSWORD: superpass
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      API_URL: http://localhost:3000
+      MASTER_DATABASE_URL: postgresql://qa_master:masterpass@localhost:5432/qa_master
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: ci_jwt_secret_minimum_32_characters_here
+      JWT_EXPIRES_IN: 15m
+      REFRESH_SECRET: ci_refresh_secret_minimum_32_characters
+      REFRESH_EXPIRES_IN: 30d
+      MASTER_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      TENANT_DB_HOST: localhost
+      TENANT_DB_PORT: 5433
+      TENANT_DB_SUPERUSER: qa_superuser
+      TENANT_DB_SUPERUSER_PASSWORD: superpass
+      EMAIL_FROM: ci@test.local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter @qa/prisma-master db:generate
+          pnpm --filter @qa/prisma-tenant db:generate
+      - name: Run master DB migrations
+        run: pnpm --filter @qa/prisma-master migrate:deploy
+      - name: Run E2E tests
+        run: pnpm test:e2e

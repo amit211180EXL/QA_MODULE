@@ -1,0 +1,15 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": "src",
+  "testRegex": ".*\\.spec\\.ts$",
+  "transform": { "^.+\\.(t|j)s$": "ts-jest" },
+  "collectCoverageFrom": ["**/*.(t|j)s"],
+  "coverageDirectory": "../coverage",
+  "testEnvironment": "node",
+  "moduleNameMapper": {
+    "^@qa/shared(.*)$": "<rootDir>/../../packages/shared/src$1",
+    "^@qa/config(.*)$": "<rootDir>/../../packages/config/src$1",
+    "^@qa/prisma-master(.*)$": "<rootDir>/../../packages/prisma-master/src$1",
+    "^@qa/prisma-tenant(.*)$": "<rootDir>/../../packages/prisma-tenant/src$1"
+  }
+}

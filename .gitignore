@@ -1,0 +1,50 @@
+# ─── Dependencies ────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ─── Build outputs ───────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.turbo/
+
+# ─── Prisma generated clients ────────────────────────────────
+packages/prisma-master/generated/
+packages/prisma-tenant/generated/
+
+# ─── Environment files ───────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ─── Logs ────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Test & coverage ─────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ─── TypeScript cache ────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── OS files ────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── IDE ─────────────────────────────────────────────────────
+.vscode/settings.json
+.vscode/launch.json
+.idea/
+
+# ─── Misc ────────────────────────────────────────────────────
+*.local
+*.db
+*.sqlite
+
