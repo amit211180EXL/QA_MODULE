@@ -56,22 +56,29 @@ const emailSchema = z
 type EmailFormValues = z.infer<typeof emailSchema>;
 
 const ENCRYPTION_OPTIONS: Array<{ value: SmtpEncryption; label: string; description: string }> = [
-  { value: 'TLS', label: 'TLS / STARTTLS', description: 'Recommended for port 587 and modern SMTP relays.' },
+  {
+    value: 'TLS',
+    label: 'TLS / STARTTLS',
+    description: 'Recommended for port 587 and modern SMTP relays.',
+  },
   { value: 'SSL', label: 'SSL', description: 'Use implicit SSL, typically on port 465.' },
   { value: 'NONE', label: 'None', description: 'Plain SMTP with no TLS negotiation.' },
 ];
 
 function getErrorMessage(error: unknown, fallback: string) {
   return (
-    (error as { response?: { data?: { error?: { message?: string }; message?: string } } })?.response
-      ?.data?.error?.message ||
+    (error as { response?: { data?: { error?: { message?: string }; message?: string } } })
+      ?.response?.data?.error?.message ||
     (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
     (error as Error)?.message ||
     fallback
   );
 }
 
-function buildPayload(values: EmailFormValues, includePassword: boolean): UpdateTenantEmailSettingsPayload {
+function buildPayload(
+  values: EmailFormValues,
+  includePassword: boolean,
+): UpdateTenantEmailSettingsPayload {
   const payload: UpdateTenantEmailSettingsPayload = {
     smtpHost: values.smtpHost.trim(),
     smtpPort: values.smtpPort,
@@ -92,9 +99,15 @@ function buildPayload(values: EmailFormValues, includePassword: boolean): Update
 
 export default function EmailConfigurationPage() {
   const queryClient = useQueryClient();
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'danger'; message: string } | null>(
+    null,
+  );
 
-  const { data: emailSettings, isLoading, isError: isLoadError } = useQuery({
+  const {
+    data: emailSettings,
+    isLoading,
+    isError: isLoadError,
+  } = useQuery({
     queryKey: ['settings', 'email'],
     queryFn: () => settingsApi.getEmail(),
     retry: 1,
@@ -163,7 +176,10 @@ export default function EmailConfigurationPage() {
     onError: (error: unknown) => {
       setFeedback({
         type: 'danger',
-        message: getErrorMessage(error, 'Failed to send test email. Check the SMTP details and try again.'),
+        message: getErrorMessage(
+          error,
+          'Failed to send test email. Check the SMTP details and try again.',
+        ),
       });
     },
   });
@@ -180,7 +196,10 @@ export default function EmailConfigurationPage() {
 
   const onSendTest = handleSubmit(async (values) => {
     if (!values.testEmailTo.trim()) {
-      setError('testEmailTo', { type: 'manual', message: 'Enter a destination email for the test message' });
+      setError('testEmailTo', {
+        type: 'manual',
+        message: 'Enter a destination email for the test message',
+      });
       return;
     }
 
@@ -230,7 +249,8 @@ export default function EmailConfigurationPage() {
                   <div>
                     <p className="font-semibold text-slate-900">SMTP transport</p>
                     <p className="mt-1 text-sm text-slate-600">
-                      Add tenant-specific SMTP details to override the platform mailer for this workspace.
+                      Add tenant-specific SMTP details to override the platform mailer for this
+                      workspace.
                     </p>
                   </div>
                 </div>
@@ -255,7 +275,9 @@ export default function EmailConfigurationPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-slate-700">Encryption</label>
+                  <label className="mb-2 block text-sm font-medium text-slate-700">
+                    Encryption
+                  </label>
                   <select
                     className="block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                     {...register('encryption')}
@@ -282,7 +304,11 @@ export default function EmailConfigurationPage() {
                   <Input
                     label="Password"
                     type="password"
-                    placeholder={emailSettings?.smtpPasswordConfigured ? 'Leave blank to keep the stored password' : 'SMTP password'}
+                    placeholder={
+                      emailSettings?.smtpPasswordConfigured
+                        ? 'Leave blank to keep the stored password'
+                        : 'SMTP password'
+                    }
                     hint={
                       emailSettings?.smtpPasswordConfigured && smtpPassword.length === 0
                         ? 'A password is already stored. Enter a new one only if you need to replace it.'
@@ -302,7 +328,9 @@ export default function EmailConfigurationPage() {
                     <ShieldCheck className="h-5 w-5 text-accent-700" />
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">Sender identity &amp; delivery rules</p>
+                    <p className="font-semibold text-slate-900">
+                      Sender identity &amp; delivery rules
+                    </p>
                     <p className="mt-1 text-sm text-slate-600">
                       Decide who the emails appear from and which system emails remain active.
                     </p>
@@ -323,7 +351,11 @@ export default function EmailConfigurationPage() {
                     label="Sender email"
                     type="email"
                     placeholder="support@acme.com"
-                    hint={smtpHost ? 'Required when custom SMTP is enabled.' : 'Optional when using the platform-level sender.'}
+                    hint={
+                      smtpHost
+                        ? 'Required when custom SMTP is enabled.'
+                        : 'Optional when using the platform-level sender.'
+                    }
                     error={errors.fromEmail?.message}
                     {...register('fromEmail')}
                   />
@@ -341,7 +373,8 @@ export default function EmailConfigurationPage() {
                     <div>
                       <p className="font-semibold text-slate-900">Enable notification emails</p>
                       <p className="mt-1.5 text-sm text-slate-600">
-                        Allows operational templates such as workflow notifications and tenant events.
+                        Allows operational templates such as workflow notifications and tenant
+                        events.
                       </p>
                     </div>
                   </label>
@@ -392,7 +425,8 @@ export default function EmailConfigurationPage() {
                 />
 
                 <div className="rounded-xl border border-primary-200/70 bg-primary-50/80 px-4 py-3 text-sm text-primary-900">
-                  The workspace will use the saved SMTP details. If no tenant SMTP host is set, the platform SMTP fallback will be used when available.
+                  The workspace will use the saved SMTP details. If no tenant SMTP host is set, the
+                  platform SMTP fallback will be used when available.
                 </div>
               </CardBody>
             </Card>
@@ -417,7 +451,11 @@ export default function EmailConfigurationPage() {
                   Send test email
                 </Button>
 
-                <Button type="submit" isLoading={saveMutation.isPending} disabled={testMutation.isPending}>
+                <Button
+                  type="submit"
+                  isLoading={saveMutation.isPending}
+                  disabled={testMutation.isPending}
+                >
                   Save configuration
                 </Button>
               </div>

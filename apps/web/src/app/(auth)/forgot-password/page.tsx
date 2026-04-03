@@ -51,7 +51,9 @@ export default function ForgotPasswordPage() {
         >
           <CheckCircle2 className="h-6 w-6" />
         </div>
-        <h1 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">Check your inbox</h1>
+        <h1 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
+          Check your inbox
+        </h1>
         <p className="mx-auto mt-1.5 max-w-sm text-xs leading-snug text-slate-600 sm:text-sm">
           If an account exists for that email, we&apos;ve sent a reset link.
         </p>
@@ -89,7 +91,10 @@ export default function ForgotPasswordPage() {
           />
         </div>
         <div>
-          <motion.div whileHover={reduceMotion ? undefined : { scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+          <motion.div
+            whileHover={reduceMotion ? undefined : { scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
             <Button type="submit" className="w-full" isLoading={isSubmitting}>
               Send reset link
             </Button>

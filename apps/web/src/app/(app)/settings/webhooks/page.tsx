@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Globe, Plus, Trash2, RefreshCw, Copy, Check, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Globe, Trash2, RefreshCw, Copy, Check, ToggleLeft, ToggleRight } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -85,9 +85,7 @@ function CreateWebhookForm({ onCreated }: { onCreated: (secret: string) => void 
   });
 
   const toggleEvent = (ev: WebhookEvent) => {
-    setEvents((prev) =>
-      prev.includes(ev) ? prev.filter((e) => e !== ev) : [...prev, ev],
-    );
+    setEvents((prev) => (prev.includes(ev) ? prev.filter((e) => e !== ev) : [...prev, ev]));
   };
 
   return (
@@ -96,15 +94,16 @@ function CreateWebhookForm({ onCreated }: { onCreated: (secret: string) => void 
         <h2 className="text-lg font-semibold text-slate-900">Register new endpoint</h2>
       </CardHeader>
       <CardBody className="space-y-4">
-        {error && (
-          <Alert variant="danger">{error}</Alert>
-        )}
+        {error && <Alert variant="danger">{error}</Alert>}
 
         <Input
           label="Endpoint URL"
           placeholder="https://your-system.example.com/webhook"
           value={url}
-          onChange={(e) => { setUrl(e.target.value); setError(''); }}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            setError('');
+          }}
         />
 
         <div>
@@ -157,7 +156,9 @@ function WebhookRow({
   const rotate = async () => {
     setRotating(true);
     try {
-      const { data } = await api.post<{ secret: string }>(`/outbound-webhooks/${hook.id}/rotate-secret`);
+      const { data } = await api.post<{ secret: string }>(
+        `/outbound-webhooks/${hook.id}/rotate-secret`,
+      );
       onRotated(data.secret);
     } finally {
       setRotating(false);
@@ -188,7 +189,10 @@ function WebhookRow({
   };
 
   return (
-    <Card shadow="xs" className="border-slate-200/90 bg-white/90 transition-all duration-base hover:border-primary-200/60 hover:shadow-md">
+    <Card
+      shadow="xs"
+      className="border-slate-200/90 bg-white/90 transition-all duration-base hover:border-primary-200/60 hover:shadow-md"
+    >
       <CardBody className="space-y-3">
         <div className="flex items-start gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-accent-50 to-primary-50 ring-1 ring-accent-100">
@@ -196,9 +200,7 @@ function WebhookRow({
           </div>
           <div className="flex-1 min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900">{hook.url}</p>
-            <p className="text-xs text-slate-600 mt-1">
-              {hook.events.join(' • ')}
-            </p>
+            <p className="text-xs text-slate-600 mt-1">{hook.events.join(' • ')}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span
@@ -312,9 +314,7 @@ export default function OutboundWebhooksPage() {
             Registered endpoints ({hooks.length})
           </h2>
 
-          {isLoading && (
-            <p className="text-sm text-slate-600">Loading…</p>
-          )}
+          {isLoading && <p className="text-sm text-slate-600">Loading…</p>}
 
           {!isLoading && hooks.length === 0 && (
             <Card shadow="xs" className="border-dashed border-slate-300 bg-slate-50/50">
@@ -347,5 +347,3 @@ export default function OutboundWebhooksPage() {
     </>
   );
 }
-
-

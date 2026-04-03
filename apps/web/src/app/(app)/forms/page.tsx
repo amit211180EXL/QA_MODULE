@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { formsApi, FormListItem } from '@/lib/api';
@@ -75,12 +75,7 @@ export default function FormsPage() {
   const [page, setPage] = useState(1);
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  const {
-    data,
-    isPending,
-    isFetching,
-    isError,
-  } = useQuery({
+  const { data, isPending, isFetching, isError } = useQuery({
     queryKey: ['forms', page, debouncedSearch],
     queryFn: () => formsApi.list({ page, limit: 20, search: debouncedSearch || undefined }),
     placeholderData: keepPreviousData,
@@ -186,7 +181,9 @@ export default function FormsPage() {
                         onClick={() => router.push(`/forms/${form.id}`)}
                         className="text-left"
                       >
-                        <p className="text-sm font-semibold text-blue-600 hover:underline">{form.name}</p>
+                        <p className="text-sm font-semibold text-blue-600 hover:underline">
+                          {form.name}
+                        </p>
                       </button>
                       {form.description && (
                         <p className="mt-0.5 text-xs text-slate-400">{form.description}</p>
@@ -233,10 +230,16 @@ export default function FormsPage() {
         {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/60 px-4 py-3">
             <p className="text-sm text-slate-500">
-              {(page - 1) * pagination.limit + 1}–{Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
+              {(page - 1) * pagination.limit + 1}–
+              {Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
             </p>
             <div className="flex gap-2">
-              <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page === 1}
+                onClick={() => setPage((p) => p - 1)}
+              >
                 Previous
               </Button>
               <Button

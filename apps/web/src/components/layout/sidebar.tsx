@@ -88,104 +88,104 @@ export function Sidebar() {
   }, []);
 
   // Keep server and first client render identical; apply role filtering after mount.
-  const visibleItems = useMemo(
-    () => {
-      if (!isMounted) {
-        return NAV_ITEMS;
-      }
-      return NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
-    },
-    [isMounted, role],
-  );
-
-  const prefetchNavTarget = useCallback((href: string) => {
-    void router.prefetch(href);
-
-    switch (href) {
-      case '/dashboard':
-        void queryClient.prefetchQuery({
-          queryKey: ['analytics', 'overview'],
-          queryFn: () => analyticsApi.overview(),
-          staleTime: 60_000,
-        });
-        void queryClient.prefetchQuery({
-          queryKey: ['analytics', 'escalation-stats'],
-          queryFn: () => analyticsApi.escalationStats(),
-          staleTime: 60_000,
-        });
-        break;
-      case '/conversations':
-        void queryClient.prefetchQuery({
-          queryKey: ['conversations', '', '', 1],
-          queryFn: () => conversationsApi.list({ page: 1, limit: 20 }),
-          staleTime: 60_000,
-        });
-        break;
-      case '/qa-queue':
-        void queryClient.prefetchQuery({
-          queryKey: ['qa-queue', 1, ''],
-          queryFn: () => evaluationsApi.listQaQueue(1, 20),
-          staleTime: 60_000,
-        });
-        break;
-      case '/verifier-queue':
-        void queryClient.prefetchQuery({
-          queryKey: ['verifier-queue', 1, ''],
-          queryFn: () => evaluationsApi.listVerifierQueue(1, 20),
-          staleTime: 60_000,
-        });
-        break;
-      case '/escalation-queue':
-        void queryClient.prefetchQuery({
-          queryKey: ['escalation-queue', 1, ''],
-          queryFn: () => evaluationsApi.listEscalationQueue(1, 20),
-          staleTime: 60_000,
-        });
-        break;
-      case '/audit-queue':
-        void queryClient.prefetchQuery({
-          queryKey: ['audit-queue', 1, ''],
-          queryFn: () => evaluationsApi.listAuditQueue(1, 20),
-          staleTime: 60_000,
-        });
-        break;
-      case '/forms':
-        void queryClient.prefetchQuery({
-          queryKey: ['forms', 1, ''],
-          queryFn: () => formsApi.list({ page: 1, limit: 20 }),
-          staleTime: 60_000,
-        });
-        break;
-      case '/users':
-        void queryClient.prefetchQuery({
-          queryKey: ['users', 1, ''],
-          queryFn: () => usersApi.list({ page: 1, limit: 20 }),
-          staleTime: 60_000,
-        });
-        break;
-      case '/billing':
-        void queryClient.prefetchQuery({
-          queryKey: ['billing'],
-          queryFn: () => billingApi.getSubscription(),
-          staleTime: 60_000,
-        });
-        void queryClient.prefetchQuery({
-          queryKey: ['billing-usage'],
-          queryFn: () => billingApi.getUsage(),
-          staleTime: 60_000,
-        });
-        break;
-      case '/settings':
-        void queryClient.prefetchQuery({
-          queryKey: ['settings'],
-          queryFn: () => settingsApi.get(),
-          staleTime: 60_000,
-        });
-        break;
-      default:
-        break;
+  const visibleItems = useMemo(() => {
+    if (!isMounted) {
+      return NAV_ITEMS;
     }
-  }, [queryClient]);
+    return NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
+  }, [isMounted, role]);
+
+  const prefetchNavTarget = useCallback(
+    (href: string) => {
+      void router.prefetch(href);
+
+      switch (href) {
+        case '/dashboard':
+          void queryClient.prefetchQuery({
+            queryKey: ['analytics', 'overview'],
+            queryFn: () => analyticsApi.overview(),
+            staleTime: 60_000,
+          });
+          void queryClient.prefetchQuery({
+            queryKey: ['analytics', 'escalation-stats'],
+            queryFn: () => analyticsApi.escalationStats(),
+            staleTime: 60_000,
+          });
+          break;
+        case '/conversations':
+          void queryClient.prefetchQuery({
+            queryKey: ['conversations', '', '', 1],
+            queryFn: () => conversationsApi.list({ page: 1, limit: 20 }),
+            staleTime: 60_000,
+          });
+          break;
+        case '/qa-queue':
+          void queryClient.prefetchQuery({
+            queryKey: ['qa-queue', 1, ''],
+            queryFn: () => evaluationsApi.listQaQueue(1, 20),
+            staleTime: 60_000,
+          });
+          break;
+        case '/verifier-queue':
+          void queryClient.prefetchQuery({
+            queryKey: ['verifier-queue', 1, ''],
+            queryFn: () => evaluationsApi.listVerifierQueue(1, 20),
+            staleTime: 60_000,
+          });
+          break;
+        case '/escalation-queue':
+          void queryClient.prefetchQuery({
+            queryKey: ['escalation-queue', 1, ''],
+            queryFn: () => evaluationsApi.listEscalationQueue(1, 20),
+            staleTime: 60_000,
+          });
+          break;
+        case '/audit-queue':
+          void queryClient.prefetchQuery({
+            queryKey: ['audit-queue', 1, ''],
+            queryFn: () => evaluationsApi.listAuditQueue(1, 20),
+            staleTime: 60_000,
+          });
+          break;
+        case '/forms':
+          void queryClient.prefetchQuery({
+            queryKey: ['forms', 1, ''],
+            queryFn: () => formsApi.list({ page: 1, limit: 20 }),
+            staleTime: 60_000,
+          });
+          break;
+        case '/users':
+          void queryClient.prefetchQuery({
+            queryKey: ['users', 1, ''],
+            queryFn: () => usersApi.list({ page: 1, limit: 20 }),
+            staleTime: 60_000,
+          });
+          break;
+        case '/billing':
+          void queryClient.prefetchQuery({
+            queryKey: ['billing'],
+            queryFn: () => billingApi.getSubscription(),
+            staleTime: 60_000,
+          });
+          void queryClient.prefetchQuery({
+            queryKey: ['billing-usage'],
+            queryFn: () => billingApi.getUsage(),
+            staleTime: 60_000,
+          });
+          break;
+        case '/settings':
+          void queryClient.prefetchQuery({
+            queryKey: ['settings'],
+            queryFn: () => settingsApi.get(),
+            staleTime: 60_000,
+          });
+          break;
+        default:
+          break;
+      }
+    },
+    [queryClient],
+  );
 
   useEffect(() => {
     for (const item of visibleItems) {
@@ -270,7 +270,9 @@ export function Sidebar() {
             {isMounted ? (user?.name?.[0]?.toUpperCase() ?? '?') : '?'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-slate-900">{isMounted ? user?.name : '\u00A0'}</p>
+            <p className="truncate text-xs font-semibold text-slate-900">
+              {isMounted ? user?.name : '\u00A0'}
+            </p>
             <p className="truncate text-2xs text-slate-500">{isMounted ? user?.email : '\u00A0'}</p>
           </div>
         </div>

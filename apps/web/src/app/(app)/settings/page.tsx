@@ -3,7 +3,18 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { Zap, EyeOff, AlertTriangle, ChevronRight, Key, Copy, Check, RefreshCw, Globe, Mail } from 'lucide-react';
+import {
+  Zap,
+  EyeOff,
+  AlertTriangle,
+  ChevronRight,
+  Key,
+  Copy,
+  Check,
+  RefreshCw,
+  Globe,
+  Mail,
+} from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { Alert } from '@/components/ui/alert';
 import { Card, CardHeader, CardBody } from '@/components/ui/card';
@@ -48,8 +59,7 @@ function ApiKeyManager() {
   const [copied, setCopied] = useState(false);
 
   const rotateMutation = useMutation({
-    mutationFn: () =>
-      api.post<{ apiKey: string }>('/settings/api-keys/rotate').then((r) => r.data),
+    mutationFn: () => api.post<{ apiKey: string }>('/settings/api-keys/rotate').then((r) => r.data),
     onSuccess: (data) => {
       setApiKey(data.apiKey);
       setCopied(false);
@@ -73,8 +83,12 @@ function ApiKeyManager() {
           <div>
             <p className="font-semibold text-slate-900">Webhook API Key</p>
             <p className="mt-1 text-sm text-slate-600">
-              Use this key with <code className="rounded bg-slate-100 px-1 text-xs font-mono">X-Api-Key</code>{' '}
-              header to POST conversations to <code className="rounded bg-slate-100 px-1 text-xs font-mono">POST /api/v1/webhooks/ingest</code>
+              Use this key with{' '}
+              <code className="rounded bg-slate-100 px-1 text-xs font-mono">X-Api-Key</code> header
+              to POST conversations to{' '}
+              <code className="rounded bg-slate-100 px-1 text-xs font-mono">
+                POST /api/v1/webhooks/ingest
+              </code>
             </p>
           </div>
         </div>
@@ -104,7 +118,9 @@ function ApiKeyManager() {
         )}
 
         {rotateMutation.isError && (
-          <Alert variant="danger" className="mb-3">Failed to generate key. Try again.</Alert>
+          <Alert variant="danger" className="mb-3">
+            Failed to generate key. Try again.
+          </Alert>
         )}
 
         <button
@@ -156,5 +172,3 @@ export default function SettingsPage() {
     </>
   );
 }
-
-

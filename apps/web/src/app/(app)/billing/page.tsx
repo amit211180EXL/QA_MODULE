@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Topbar } from '@/components/layout/topbar';
@@ -47,15 +47,7 @@ const PLAN_BADGE: Record<string, string> = {
 
 // ─── Usage bar ────────────────────────────────────────────────────────────────
 
-function UsageBar({
-  label,
-  used,
-  limit,
-}: {
-  label: string;
-  used: number;
-  limit: number;
-}) {
+function UsageBar({ label, used, limit }: { label: string; used: number; limit: number }) {
   const unlimited = limit === -1;
   const pct = unlimited ? 0 : Math.min(100, (used / limit) * 100);
   const near = pct >= 80;
@@ -90,13 +82,15 @@ function UsageBar({
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default function BillingPage() {
+function BillingPageContent() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const checkoutStatus = searchParams.get('checkout');
-  const [prorationBehavior, setProrationBehavior] = useState<'create_prorations' | 'always_invoice' | 'none'>('create_prorations');
+  const [prorationBehavior, setProrationBehavior] = useState<
+    'create_prorations' | 'always_invoice' | 'none'
+  >('create_prorations');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -114,14 +108,23 @@ export default function BillingPage() {
     return () => window.clearTimeout(timeout);
   }, [checkoutStatus, pathname, queryClient, router]);
 
-  const { data: billing, isLoading: billingLoading, isFetching: billingFetching, isError: billingError } = useQuery<BillingSubscription>({
+  const {
+    data: billing,
+    isLoading: billingLoading,
+    isFetching: billingFetching,
+    isError: billingError,
+  } = useQuery<BillingSubscription>({
     queryKey: ['billing'],
     queryFn: () => billingApi.getSubscription(),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: usage, isLoading: usageLoading, isFetching: usageFetching } = useQuery<BillingUsage>({
+  const {
+    data: usage,
+    isLoading: usageLoading,
+    isFetching: usageFetching,
+  } = useQuery<BillingUsage>({
     queryKey: ['billing-usage'],
     queryFn: () => billingApi.getUsage(),
     staleTime: 60_000,
@@ -133,7 +136,8 @@ export default function BillingPage() {
   const sub = billing?.subscription;
   const checkoutMutation = useMutation({
     mutationFn: async (plan: 'BASIC' | 'PRO' | 'ENTERPRISE') => {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
       const result = await billingApi.createCheckoutSession({
         plan,
         successUrl: `${origin}/billing?checkout=success`,
@@ -158,7 +162,9 @@ export default function BillingPage() {
       prorationBehavior: 'create_prorations' | 'always_invoice' | 'none';
     }) => billingApi.changePlan(payload),
     onSuccess: (result) => {
-      setActionMessage(`Plan switched to ${result.plan}. Proration mode: ${result.prorationBehavior}.`);
+      setActionMessage(
+        `Plan switched to ${result.plan}. Proration mode: ${result.prorationBehavior}.`,
+      );
       queryClient.invalidateQueries({ queryKey: ['billing'] });
       queryClient.invalidateQueries({ queryKey: ['billing-usage'] });
     },
@@ -182,7 +188,8 @@ export default function BillingPage() {
 
   const portalMutation = useMutation({
     mutationFn: async () => {
-      const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
+      const origin =
+        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3001';
       const result = await billingApi.createPortalSession({
         returnUrl: `${origin}/billing`,
       });
@@ -209,9 +216,10 @@ export default function BillingPage() {
 
   const isNearLimit =
     usage &&
-    (usage.conversations.limit !== -1 && usage.conversations.used / usage.conversations.limit >= 0.8 ||
-      usage.users.limit !== -1 && usage.users.used / usage.users.limit >= 0.8 ||
-      usage.forms.limit !== -1 && usage.forms.used / usage.forms.limit >= 0.8);
+    ((usage.conversations.limit !== -1 &&
+      usage.conversations.used / usage.conversations.limit >= 0.8) ||
+      (usage.users.limit !== -1 && usage.users.used / usage.users.limit >= 0.8) ||
+      (usage.forms.limit !== -1 && usage.forms.used / usage.forms.limit >= 0.8));
 
   return (
     <>
@@ -231,16 +239,18 @@ export default function BillingPage() {
         </div>
 
         {checkoutStatus === 'success' && (
-          <Alert variant="success">Checkout completed. Stripe will update your subscription shortly.</Alert>
+          <Alert variant="success">
+            Checkout completed. Stripe will update your subscription shortly.
+          </Alert>
         )}
         {checkoutStatus === 'cancelled' && (
-          <Alert variant="warning">Checkout was cancelled. Your current plan remains unchanged.</Alert>
+          <Alert variant="warning">
+            Checkout was cancelled. Your current plan remains unchanged.
+          </Alert>
         )}
         {actionMessage && <Alert variant="success">{actionMessage}</Alert>}
 
-        {billingError && (
-          <Alert variant="danger">Failed to load billing information.</Alert>
-        )}
+        {billingError && <Alert variant="danger">Failed to load billing information.</Alert>}
 
         {isRefreshing && !billingLoading && !usageLoading && (
           <Alert variant="info">Updating billing data...</Alert>
@@ -256,7 +266,8 @@ export default function BillingPage() {
 
         {sub?.status === 'PAST_DUE' && (
           <Alert variant="warning">
-            Payment is past due. Update your payment method or retry collection from Stripe billing portal.
+            Payment is past due. Update your payment method or retry collection from Stripe billing
+            portal.
             <button
               className="ml-3 rounded-md border border-yellow-300 bg-yellow-50 px-2.5 py-1 text-xs font-semibold text-yellow-800 hover:bg-yellow-100 disabled:opacity-60"
               onClick={() => portalMutation.mutate()}
@@ -280,155 +291,162 @@ export default function BillingPage() {
           </div>
 
           <div className="px-5 py-4">
-          {billingLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-5 w-64 animate-pulse rounded bg-slate-100" />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
-                <div>
-                  <p className="text-xs text-slate-500">Plan</p>
-                  <span
-                    className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-semibold ${
-                      PLAN_BADGE[billing?.tenant.plan ?? ''] ?? 'bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    {billing?.tenant.plan ?? '—'}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Status</p>
-                  {sub ? (
+            {billingLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-5 w-64 animate-pulse rounded bg-slate-100" />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-slate-500">Plan</p>
                     <span
-                      className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        STATUS_BADGE[sub.status] ?? 'bg-slate-100 text-slate-600'
+                      className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-semibold ${
+                        PLAN_BADGE[billing?.tenant.plan ?? ''] ?? 'bg-slate-100 text-slate-700'
                       }`}
                     >
-                      {sub.status.replace(/_/g, ' ')}
+                      {billing?.tenant.plan ?? '—'}
                     </span>
-                  ) : (
-                    <p className="mt-1 text-sm text-slate-400">No subscription</p>
-                  )}
-                </div>
-                {sub && (
-                  <>
-                    <div>
-                      <p className="text-xs text-slate-500">Current period</p>
-                      <p className="mt-1 text-sm text-slate-700">
-                        {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
-                      </p>
-                    </div>
-                    {sub.trialEndsAt && (
-                      <div>
-                        <p className="text-xs text-slate-500">Trial ends</p>
-                        <p className="mt-1 text-sm text-slate-700">{formatDate(sub.trialEndsAt)}</p>
-                      </div>
-                    )}
-                    {sub.cancelledAt && (
-                      <div>
-                        <p className="text-xs text-slate-500">Cancelled on</p>
-                        <p className="mt-1 text-sm text-red-600">{formatDate(sub.cancelledAt)}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-xs text-slate-500">Member since</p>
-                      <p className="mt-1 text-sm text-slate-700">{formatDate(sub.createdAt)}</p>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
-                <p className="text-sm font-medium text-slate-800">Manage Plan</p>
-                <p className="mt-1 text-xs text-slate-500">Start or switch your Stripe subscription plan.</p>
-                {sub && (
-                  <div className="mt-3 max-w-sm">
-                    <label className="block text-xs font-medium text-slate-700">Proration behavior</label>
-                    <select
-                      value={prorationBehavior}
-                      onChange={(e) =>
-                        setProrationBehavior(
-                          e.target.value as 'create_prorations' | 'always_invoice' | 'none',
-                        )
-                      }
-                      className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
-                    >
-                      <option value="create_prorations">Create prorations on next invoice</option>
-                      <option value="always_invoice">Invoice proration immediately</option>
-                      <option value="none">No proration adjustments</option>
-                    </select>
                   </div>
-                )}
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(['BASIC', 'PRO', 'ENTERPRISE'] as const).map((plan) => {
-                    const isCurrent = billing?.tenant.plan === plan;
-                    return (
-                      <button
-                        key={plan}
-                        disabled={checkoutMutation.isPending || changePlanMutation.isPending}
-                        onClick={() => runPlanChange(plan)}
-                        className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                          isCurrent
-                            ? 'bg-slate-900 text-white'
-                            : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                  <div>
+                    <p className="text-xs text-slate-500">Status</p>
+                    {sub ? (
+                      <span
+                        className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          STATUS_BADGE[sub.status] ?? 'bg-slate-100 text-slate-600'
                         }`}
                       >
-                        {checkoutMutation.isPending || changePlanMutation.isPending
-                          ? 'Processing...'
-                          : isCurrent
-                            ? `${plan} (Current)`
-                            : `Switch to ${plan}`}
-                      </button>
-                    );
-                  })}
-                </div>
-                {sub && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {sub.cancelledAt ? (
-                      <button
-                        disabled={resumeMutation.isPending}
-                        onClick={() => resumeMutation.mutate()}
-                        className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                      >
-                        {resumeMutation.isPending ? 'Resuming...' : 'Resume Subscription'}
-                      </button>
+                        {sub.status.replace(/_/g, ' ')}
+                      </span>
                     ) : (
-                      <button
-                        disabled={cancelMutation.isPending}
-                        onClick={() => cancelMutation.mutate()}
-                        className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
-                      >
-                        {cancelMutation.isPending ? 'Cancelling...' : 'Cancel At Period End'}
-                      </button>
+                      <p className="mt-1 text-sm text-slate-400">No subscription</p>
                     )}
                   </div>
-                )}
-                {checkoutMutation.isError && (
-                  <p className="mt-2 text-xs text-red-600">
-                    Failed to create checkout session. Ensure Stripe keys are configured.
+                  {sub && (
+                    <>
+                      <div>
+                        <p className="text-xs text-slate-500">Current period</p>
+                        <p className="mt-1 text-sm text-slate-700">
+                          {formatDate(sub.currentPeriodStart)} – {formatDate(sub.currentPeriodEnd)}
+                        </p>
+                      </div>
+                      {sub.trialEndsAt && (
+                        <div>
+                          <p className="text-xs text-slate-500">Trial ends</p>
+                          <p className="mt-1 text-sm text-slate-700">
+                            {formatDate(sub.trialEndsAt)}
+                          </p>
+                        </div>
+                      )}
+                      {sub.cancelledAt && (
+                        <div>
+                          <p className="text-xs text-slate-500">Cancelled on</p>
+                          <p className="mt-1 text-sm text-red-600">{formatDate(sub.cancelledAt)}</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xs text-slate-500">Member since</p>
+                        <p className="mt-1 text-sm text-slate-700">{formatDate(sub.createdAt)}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-sm font-medium text-slate-800">Manage Plan</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Start or switch your Stripe subscription plan.
                   </p>
-                )}
-                {changePlanMutation.isError && (
-                  <p className="mt-2 text-xs text-red-600">
-                    Failed to change plan in Stripe. If this is your first subscription, start checkout first.
-                  </p>
-                )}
-                {(cancelMutation.isError || resumeMutation.isError) && (
-                  <p className="mt-2 text-xs text-red-600">
-                    Failed to update subscription state. Please try again.
-                  </p>
-                )}
-                {portalMutation.isError && (
-                  <p className="mt-2 text-xs text-red-600">
-                    Failed to open Stripe billing portal. Please verify Stripe customer linkage.
-                  </p>
-                )}
+                  {sub && (
+                    <div className="mt-3 max-w-sm">
+                      <label className="block text-xs font-medium text-slate-700">
+                        Proration behavior
+                      </label>
+                      <select
+                        value={prorationBehavior}
+                        onChange={(e) =>
+                          setProrationBehavior(
+                            e.target.value as 'create_prorations' | 'always_invoice' | 'none',
+                          )
+                        }
+                        className="mt-1 w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700"
+                      >
+                        <option value="create_prorations">Create prorations on next invoice</option>
+                        <option value="always_invoice">Invoice proration immediately</option>
+                        <option value="none">No proration adjustments</option>
+                      </select>
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(['BASIC', 'PRO', 'ENTERPRISE'] as const).map((plan) => {
+                      const isCurrent = billing?.tenant.plan === plan;
+                      return (
+                        <button
+                          key={plan}
+                          disabled={checkoutMutation.isPending || changePlanMutation.isPending}
+                          onClick={() => runPlanChange(plan)}
+                          className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                            isCurrent
+                              ? 'bg-slate-900 text-white'
+                              : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {checkoutMutation.isPending || changePlanMutation.isPending
+                            ? 'Processing...'
+                            : isCurrent
+                              ? `${plan} (Current)`
+                              : `Switch to ${plan}`}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {sub && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {sub.cancelledAt ? (
+                        <button
+                          disabled={resumeMutation.isPending}
+                          onClick={() => resumeMutation.mutate()}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                        >
+                          {resumeMutation.isPending ? 'Resuming...' : 'Resume Subscription'}
+                        </button>
+                      ) : (
+                        <button
+                          disabled={cancelMutation.isPending}
+                          onClick={() => cancelMutation.mutate()}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                        >
+                          {cancelMutation.isPending ? 'Cancelling...' : 'Cancel At Period End'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {checkoutMutation.isError && (
+                    <p className="mt-2 text-xs text-red-600">
+                      Failed to create checkout session. Ensure Stripe keys are configured.
+                    </p>
+                  )}
+                  {changePlanMutation.isError && (
+                    <p className="mt-2 text-xs text-red-600">
+                      Failed to change plan in Stripe. If this is your first subscription, start
+                      checkout first.
+                    </p>
+                  )}
+                  {(cancelMutation.isError || resumeMutation.isError) && (
+                    <p className="mt-2 text-xs text-red-600">
+                      Failed to update subscription state. Please try again.
+                    </p>
+                  )}
+                  {portalMutation.isError && (
+                    <p className="mt-2 text-xs text-red-600">
+                      Failed to open Stripe billing portal. Please verify Stripe customer linkage.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
 
@@ -449,41 +467,41 @@ export default function BillingPage() {
           </div>
 
           <div className="px-5 py-4">
-          {usageLoading ? (
-            <div className="space-y-5">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-1">
-                  <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
-                  <div className="h-2 w-full animate-pulse rounded bg-slate-100" />
-                </div>
-              ))}
-            </div>
-          ) : usage ? (
-            <div className="space-y-5">
-              <UsageBar
-                label="Conversations processed"
-                used={usage.conversations.used}
-                limit={usage.conversations.limit}
-              />
-              <UsageBar label="Active users" used={usage.users.used} limit={usage.users.limit} />
-              <UsageBar label="Forms" used={usage.forms.used} limit={usage.forms.limit} />
+            {usageLoading ? (
+              <div className="space-y-5">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="h-4 w-40 animate-pulse rounded bg-slate-100" />
+                    <div className="h-2 w-full animate-pulse rounded bg-slate-100" />
+                  </div>
+                ))}
+              </div>
+            ) : usage ? (
+              <div className="space-y-5">
+                <UsageBar
+                  label="Conversations processed"
+                  used={usage.conversations.used}
+                  limit={usage.conversations.limit}
+                />
+                <UsageBar label="Active users" used={usage.users.used} limit={usage.users.limit} />
+                <UsageBar label="Forms" used={usage.forms.used} limit={usage.forms.limit} />
 
-              {/* AI cost */}
-              <div className="rounded-lg bg-slate-50 px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-slate-800">AI tokens used</p>
-                  <p className="text-xs text-slate-500">
-                    {usage.ai.tokensUsed.toLocaleString()} tokens
+                {/* AI cost */}
+                <div className="rounded-lg bg-slate-50 px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">AI tokens used</p>
+                    <p className="text-xs text-slate-500">
+                      {usage.ai.tokensUsed.toLocaleString()} tokens
+                    </p>
+                  </div>
+                  <p className="text-lg font-semibold text-slate-900">
+                    {formatCurrency(usage.ai.costCents)}
                   </p>
                 </div>
-                <p className="text-lg font-semibold text-slate-900">
-                  {formatCurrency(usage.ai.costCents)}
-                </p>
               </div>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-400">No usage data available.</p>
-          )}
+            ) : (
+              <p className="text-sm text-slate-400">No usage data available.</p>
+            )}
           </div>
         </div>
 
@@ -495,9 +513,7 @@ export default function BillingPage() {
           {billingLoading ? (
             <div className="px-6 py-6 text-center text-sm text-slate-400">Loading…</div>
           ) : !billing?.invoices || billing.invoices.length === 0 ? (
-            <div className="px-6 py-8 text-center text-sm text-slate-400">
-              No invoices yet.
-            </div>
+            <div className="px-6 py-8 text-center text-sm text-slate-400">No invoices yet.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -538,7 +554,10 @@ export default function BillingPage() {
   );
 }
 
-
-
-
-
+export default function BillingPage() {
+  return (
+    <Suspense fallback={null}>
+      <BillingPageContent />
+    </Suspense>
+  );
+}

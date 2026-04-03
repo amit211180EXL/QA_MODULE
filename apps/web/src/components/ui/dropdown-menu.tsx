@@ -29,8 +29,8 @@ export function DropdownMenuItem({
     <button
       type="button"
       className={`block w-full px-4 py-2 text-left text-sm font-medium transition-all duration-base ${
-        variant === 'danger' 
-          ? 'text-danger-600 hover:bg-danger-50' 
+        variant === 'danger'
+          ? 'text-danger-600 hover:bg-danger-50'
           : 'text-slate-700 hover:bg-slate-50'
       }`}
       onClick={onClick}

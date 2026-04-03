@@ -8,7 +8,7 @@ const DynamicOnboardingWizard = dynamic(
     const mod = await import('@/components/onboarding/onboarding-wizard');
     return { default: mod.OnboardingWizard };
   },
-  { loading: () => null, ssr: false }
+  { loading: () => null, ssr: false },
 );
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

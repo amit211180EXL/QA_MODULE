@@ -49,7 +49,9 @@ export function AuthChrome({ children }: { children: React.ReactNode }) {
           whileTap={reduceMotion ? undefined : { scale: 0.98 }}
           transition={{ type: 'spring', stiffness: 400, damping: 22 }}
         >
-          <span className={dense ? 'text-sm font-bold text-white' : 'text-lg font-bold text-white'}>QA</span>
+          <span className={dense ? 'text-sm font-bold text-white' : 'text-lg font-bold text-white'}>
+            QA
+          </span>
         </motion.div>
         <motion.span
           className={

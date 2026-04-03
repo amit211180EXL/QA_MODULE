@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi, formsApi, ConversationListItem } from '@/lib/api';
@@ -33,16 +33,23 @@ const StatusBadge = React.memo(function StatusBadge({ status }: { status: string
 
 // ─── Score cell ───────────────────────────────────────────────────────────────
 
-const ScoreCell = React.memo(function ScoreCell({ evaluation }: { evaluation: ConversationListItem['evaluation'] }) {
+const ScoreCell = React.memo(function ScoreCell({
+  evaluation,
+}: {
+  evaluation: ConversationListItem['evaluation'];
+}) {
   if (!evaluation) return <span className="text-slate-300 text-sm font-semibold">—</span>;
   const score =
     evaluation.finalScore ?? evaluation.verifierScore ?? evaluation.qaScore ?? evaluation.aiScore;
   if (score === null) return <span className="text-slate-300 text-sm font-semibold">—</span>;
   const label =
-    evaluation.finalScore !== null ? 'Final'
-    : evaluation.verifierScore !== null ? 'Verifier'
-    : evaluation.qaScore !== null ? 'QA'
-    : 'AI';
+    evaluation.finalScore !== null
+      ? 'Final'
+      : evaluation.verifierScore !== null
+        ? 'Verifier'
+        : evaluation.qaScore !== null
+          ? 'QA'
+          : 'AI';
   const pass = evaluation.passFail;
   return (
     <div className="flex items-center gap-2">
@@ -106,19 +113,25 @@ const UploadModal = React.memo(function UploadModal({ onClose }: { onClose: () =
       <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-6 py-4">
           <h3 className="text-base font-bold text-slate-900">Upload Conversations</h3>
-          <p className="mt-0.5 text-xs text-slate-500">JSON file with an array of conversation objects</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            JSON file with an array of conversation objects
+          </p>
         </div>
 
         <div className="space-y-4 p-6">
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">Channel</label>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Channel
+            </label>
             <select
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
               className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {['CHAT', 'EMAIL', 'CALL', 'SOCIAL'].map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
@@ -153,7 +166,9 @@ const UploadModal = React.memo(function UploadModal({ onClose }: { onClose: () =
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
-          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
           <Button
             disabled={!parsed || !parsed.length}
             isLoading={uploadMutation.isPending}
@@ -234,7 +249,9 @@ export default function ConversationsPage() {
         <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-white px-5 py-3">
           <div>
             <h1 className="text-xl font-bold text-slate-900">Conversations</h1>
-            <p className="text-sm text-slate-500">Upload and track your QA conversation evaluations</p>
+            <p className="text-sm text-slate-500">
+              Upload and track your QA conversation evaluations
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -258,14 +275,17 @@ export default function ConversationsPage() {
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" />
           <div className="flex-1 text-sm">
             <p className="font-semibold text-orange-800">
-              {pendingCount} conversation{pendingCount !== 1 ? 's' : ''} stuck in PENDING — no published QA form
+              {pendingCount} conversation{pendingCount !== 1 ? 's' : ''} stuck in PENDING — no
+              published QA form
             </p>
             <p className="mt-0.5 text-orange-700">
               Publish a form first, then click <strong>Evaluate Pending</strong>.
             </p>
             <div className="mt-2">
               <Link href="/forms">
-                <Button size="sm" variant="primary">Go to Forms</Button>
+                <Button size="sm" variant="primary">
+                  Go to Forms
+                </Button>
               </Link>
             </div>
           </div>
@@ -285,14 +305,19 @@ export default function ConversationsPage() {
             </p>
             {backfillMutation.isSuccess && (
               <p className="mt-1.5 font-semibold text-emerald-700">
-                ✓ {backfillMutation.data?.processed} conversation{backfillMutation.data?.processed !== 1 ? 's' : ''} sent to QA queue.
+                ✓ {backfillMutation.data?.processed} conversation
+                {backfillMutation.data?.processed !== 1 ? 's' : ''} sent to QA queue.
               </p>
             )}
             {backfillMutation.isError && (
               <p className="mt-1.5 font-semibold text-red-600">Failed — please try again.</p>
             )}
             <div className="mt-2">
-              <Button size="sm" isLoading={backfillMutation.isPending} onClick={() => backfillMutation.mutate()}>
+              <Button
+                size="sm"
+                isLoading={backfillMutation.isPending}
+                onClick={() => backfillMutation.mutate()}
+              >
                 Evaluate Pending Conversations
               </Button>
             </div>
@@ -304,7 +329,10 @@ export default function ConversationsPage() {
       <div className="mb-4 space-y-2">
         <input
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           placeholder="Search by external ID, channel, agent, or customer…"
           className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
@@ -312,7 +340,10 @@ export default function ConversationsPage() {
           {STATUSES.map((s) => (
             <button
               key={s}
-              onClick={() => { setStatusFilter(s); setPage(1); }}
+              onClick={() => {
+                setStatusFilter(s);
+                setPage(1);
+              }}
               className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
                 statusFilter === s
                   ? 'bg-blue-600 text-white shadow-sm'
@@ -358,7 +389,15 @@ export default function ConversationsPage() {
               <table className="min-w-full">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/80">
-                    {['External ID', 'Channel', 'Agent', 'Customer', 'Status', 'Score', 'Received'].map((h) => (
+                    {[
+                      'External ID',
+                      'Channel',
+                      'Agent',
+                      'Customer',
+                      'Status',
+                      'Score',
+                      'Received',
+                    ].map((h) => (
                       <th
                         key={h}
                         className="whitespace-nowrap px-4 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500"
@@ -413,10 +452,20 @@ export default function ConversationsPage() {
                   {Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
                     Previous
                   </Button>
-                  <Button variant="secondary" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
                     Next
                   </Button>
                 </div>

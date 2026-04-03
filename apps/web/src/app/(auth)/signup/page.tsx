@@ -127,10 +127,15 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <motion.div whileHover={reduceMotion ? undefined : { scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+          <motion.div
+            whileHover={reduceMotion ? undefined : { scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
             <Button type="submit" className="group w-full" isLoading={isSubmitting}>
               <span>Create workspace</span>
-              {!isSubmitting && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+              {!isSubmitting && (
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              )}
             </Button>
           </motion.div>
         </div>
@@ -138,7 +143,10 @@ export default function SignupPage() {
 
       <p className="mt-4 text-center text-xs text-slate-600 sm:text-sm">
         Already have an account?{' '}
-        <Link href="/login" className="font-semibold text-primary-600 hover:text-primary-700 hover:underline">
+        <Link
+          href="/login"
+          className="font-semibold text-primary-600 hover:text-primary-700 hover:underline"
+        >
           Sign in
         </Link>
       </p>

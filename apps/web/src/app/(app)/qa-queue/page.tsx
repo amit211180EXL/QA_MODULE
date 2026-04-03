@@ -8,7 +8,7 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardHeader, CardBody } from '@/components/ui/card';
+import { Card, CardBody } from '@/components/ui/card';
 import { Topbar } from '@/components/layout/topbar';
 import { PageHeader } from '@/components/layout/page-header';
 import { ClipboardList, AlertTriangle, FileText } from 'lucide-react';
@@ -236,10 +236,10 @@ export default function QaQueuePage() {
               placeholder="Search by external ID, channel, agent, or customer"
               className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 transition-all placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
-            {isPending && items.length === 0 && <div className="py-12 text-center text-sm text-slate-600">Loading queue…</div>}
-            {isError && (
-              <Alert variant="danger">Failed to load QA queue.</Alert>
+            {isPending && items.length === 0 && (
+              <div className="py-12 text-center text-sm text-slate-600">Loading queue…</div>
             )}
+            {isError && <Alert variant="danger">Failed to load QA queue.</Alert>}
             {!isPending && !isError && items.length === 0 && <EmptyStateDiagnostic />}
             {items.length > 0 && (
               <div className="overflow-x-auto -mx-5 -mb-4">
@@ -280,12 +280,15 @@ export default function QaQueuePage() {
                         <td className="px-5 py-3 text-sm text-slate-700">
                           <div className="space-y-1">
                             <div className="font-mono whitespace-nowrap text-xs">
-                              {item.evaluation.conversation.externalId ?? item.evaluationId.slice(0, 8)}
+                              {item.evaluation.conversation.externalId ??
+                                item.evaluationId.slice(0, 8)}
                             </div>
                             {item.evaluation.verifierRejectReason && (
                               <div className="max-w-[280px] rounded-lg border border-warning-200 bg-warning-50 px-2.5 py-2 text-xs text-warning-800">
                                 <div className="font-semibold">Rejected by verifier</div>
-                                <div className="mt-0.5 line-clamp-3">{item.evaluation.verifierRejectReason}</div>
+                                <div className="mt-0.5 line-clamp-3">
+                                  {item.evaluation.verifierRejectReason}
+                                </div>
                               </div>
                             )}
                           </div>
@@ -310,7 +313,8 @@ export default function QaQueuePage() {
                             <StateBadge state={item.evaluation.workflowState} />
                             {item.evaluation.verifierRejectedAt && (
                               <div className="text-xs text-warning-700 whitespace-nowrap">
-                                Returned {new Date(item.evaluation.verifierRejectedAt).toLocaleDateString()}
+                                Returned{' '}
+                                {new Date(item.evaluation.verifierRejectedAt).toLocaleDateString()}
                               </div>
                             )}
                           </div>
@@ -334,10 +338,17 @@ export default function QaQueuePage() {
             {data?.pagination && data.pagination.totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
                 <p className="text-sm text-slate-600">
-                  {(page - 1) * data.pagination.limit + 1}–{Math.min(page * data.pagination.limit, data.pagination.total)} of {data.pagination.total}
+                  {(page - 1) * data.pagination.limit + 1}–
+                  {Math.min(page * data.pagination.limit, data.pagination.total)} of{' '}
+                  {data.pagination.total}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
                     Previous
                   </Button>
                   <Button

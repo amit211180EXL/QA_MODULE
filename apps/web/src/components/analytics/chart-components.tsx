@@ -11,12 +11,13 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import type { ScoreTrendDay, ScoreTrendChannel, AiUsageTrendPoint } from '@/lib/analytics-api';
 
 function EmptyChart({ label }: { label: string }) {
-  return <div className="flex h-48 items-center justify-center text-sm text-slate-400">{label}</div>;
+  return (
+    <div className="flex h-48 items-center justify-center text-sm text-slate-400">{label}</div>
+  );
 }
 
 //  Score Trend Chart (by day)
@@ -103,7 +104,11 @@ export function AiUsageTrendChart({ data }: { data: AiUsageTrendPoint[] | undefi
 }
 
 // Agent Performance Chart
-export function AgentPerformanceChart({ data }: { data: Array<{ agentName: string; avgScore: number; passRate: number }> | undefined }) {
+export function AgentPerformanceChart({
+  data,
+}: {
+  data: Array<{ agentName: string; avgScore: number; passRate: number }> | undefined;
+}) {
   if (!data || data.length === 0) return <EmptyChart label="No data" />;
   return (
     <ResponsiveContainer width="100%" height={300}>
@@ -135,8 +140,21 @@ export function DeviationTrendChart({
         <YAxis />
         <Tooltip />
         <Legend />
-        <Line type="monotone" dataKey="avgDeviation" stroke="#ef4444" name="Avg Deviation" dot={false} />
-        <Line type="monotone" dataKey="threshold" stroke="#6b7280" name="Threshold" strokeDasharray="5 5" dot={false} />
+        <Line
+          type="monotone"
+          dataKey="avgDeviation"
+          stroke="#ef4444"
+          name="Avg Deviation"
+          dot={false}
+        />
+        <Line
+          type="monotone"
+          dataKey="threshold"
+          stroke="#6b7280"
+          name="Threshold"
+          strokeDasharray="5 5"
+          dot={false}
+        />
       </RechartsLineChart>
     </ResponsiveContainer>
   );

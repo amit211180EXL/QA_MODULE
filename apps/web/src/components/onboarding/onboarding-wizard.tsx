@@ -181,9 +181,7 @@ export function OnboardingWizard() {
                     done ? 'bg-green-50' : 'bg-indigo-50'
                   }`}
                 >
-                  <Icon
-                    className={`h-4 w-4 ${done ? 'text-green-500' : 'text-indigo-500'}`}
-                  />
+                  <Icon className={`h-4 w-4 ${done ? 'text-green-500' : 'text-indigo-500'}`} />
                 </div>
 
                 {/* Text */}
@@ -195,9 +193,7 @@ export function OnboardingWizard() {
                   >
                     {step.label}
                   </p>
-                  {!done && (
-                    <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>
-                  )}
+                  {!done && <p className="text-xs text-gray-500 mt-0.5">{step.description}</p>}
                 </div>
 
                 {/* CTA */}

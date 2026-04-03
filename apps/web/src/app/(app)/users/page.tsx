@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -41,8 +41,13 @@ const CredentialsModal = React.memo(function CredentialsModal({
 
   const copy = (text: string, type: 'email' | 'pass') => {
     navigator.clipboard.writeText(text);
-    if (type === 'email') { setCopiedEmail(true); setTimeout(() => setCopiedEmail(false), 2000); }
-    else { setCopiedPass(true); setTimeout(() => setCopiedPass(false), 2000); }
+    if (type === 'email') {
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2000);
+    } else {
+      setCopiedPass(true);
+      setTimeout(() => setCopiedPass(false), 2000);
+    }
   };
 
   return (
@@ -50,7 +55,8 @@ const CredentialsModal = React.memo(function CredentialsModal({
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
         <h3 className="mb-1 text-lg font-semibold text-slate-900">User created</h3>
         <p className="mb-5 text-sm text-slate-500">
-          Share these credentials with <strong>{result.user.name}</strong>. The password will not be shown again.
+          Share these credentials with <strong>{result.user.name}</strong>. The password will not be
+          shown again.
         </p>
 
         <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
@@ -63,7 +69,11 @@ const CredentialsModal = React.memo(function CredentialsModal({
               onClick={() => copy(result.user.email, 'email')}
               className="flex-shrink-0 rounded p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
             >
-              {copiedEmail ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              {copiedEmail ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
           </div>
           <div className="flex items-center justify-between gap-2">
@@ -75,7 +85,11 @@ const CredentialsModal = React.memo(function CredentialsModal({
               onClick={() => copy(result.password, 'pass')}
               className="flex-shrink-0 rounded p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-700"
             >
-              {copiedPass ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              {copiedPass ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
             </button>
           </div>
         </div>
@@ -243,12 +257,7 @@ export default function UsersPage() {
   const queryClient = useQueryClient();
   const debouncedSearch = useDebouncedValue(search, 250);
 
-  const {
-    data,
-    isPending,
-    isFetching,
-    isError,
-  } = useQuery({
+  const { data, isPending, isFetching, isError } = useQuery({
     queryKey: ['users', page, debouncedSearch],
     queryFn: () => usersApi.list({ page, limit: 20, search: debouncedSearch || undefined }),
     placeholderData: keepPreviousData,
@@ -290,120 +299,125 @@ export default function UsersPage() {
           </Button>
         </div>
 
-      <Card shadow="sm">
-        <CardBody className="space-y-4">
-          <input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search by name or email"
-            className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 transition-all placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-          />
-        {isPending && users.length === 0 && (
-          <div className="flex items-center justify-center py-12 text-sm text-slate-600">
-            Loading users...
-          </div>
-        )}
-        {isError && <Alert variant="danger">Failed to load users.</Alert>}
-        {!isPending && !isError && users.length === 0 && (
-          <div className="flex flex-col items-center py-12 text-center">
-            <UserPlus className="mb-3 h-10 w-10 text-slate-300" />
-            <p className="text-sm text-slate-600">No team members yet</p>
-            <Button className="mt-4" onClick={() => setShowCreate(true)}>
-              Add your first member
-            </Button>
-          </div>
-        )}
-        {users.length > 0 && (
-          <div className="-mx-5 -mb-4 overflow-x-auto">
-            {isFetching && (
-              <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-2 text-xs font-medium text-slate-500">
-                Updating team…
+        <Card shadow="sm">
+          <CardBody className="space-y-4">
+            <input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by name or email"
+              className="w-full rounded-md border border-slate-300 bg-white px-4 py-2 text-sm text-slate-900 transition-all placeholder:text-slate-500 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            />
+            {isPending && users.length === 0 && (
+              <div className="flex items-center justify-center py-12 text-sm text-slate-600">
+                Loading users...
               </div>
             )}
-            <table className="min-w-full divide-y divide-slate-100">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
-                    Name
-                  </th>
-                  <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
-                    Email
-                  </th>
-                  <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
-                    Role
-                  </th>
-                  <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
-                    Status
-                  </th>
-                  <th className="w-10"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-sm font-semibold">
-                          {user.name[0]?.toUpperCase()}
-                        </div>
-                        <span className="text-sm font-semibold text-slate-900">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-sm text-slate-700 whitespace-nowrap">
-                      {user.email}
-                    </td>
-                    <td className="px-5 py-3 whitespace-nowrap">
-                      <RoleBadge role={user.role} />
-                    </td>
-                    <td className="px-5 py-3 whitespace-nowrap">
-                      <Badge variant={user.status === 'ACTIVE' ? 'success' : 'default'} size="sm">
-                        {user.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-3 text-right">
-                      <ActionMenu
-                        user={{ ...user, isActive: user.status === 'ACTIVE' }}
-                        onDeactivate={(id) => deactivateMutation.mutate(id)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-            <p className="text-sm text-slate-600">
-              {(page - 1) * pagination.limit + 1}–{Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
-            </p>
-            <div className="flex gap-2">
-              <Button variant="secondary" size="sm" disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
-                Previous
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={page >= pagination.totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
-        </CardBody>
-      </Card>
+            {isError && <Alert variant="danger">Failed to load users.</Alert>}
+            {!isPending && !isError && users.length === 0 && (
+              <div className="flex flex-col items-center py-12 text-center">
+                <UserPlus className="mb-3 h-10 w-10 text-slate-300" />
+                <p className="text-sm text-slate-600">No team members yet</p>
+                <Button className="mt-4" onClick={() => setShowCreate(true)}>
+                  Add your first member
+                </Button>
+              </div>
+            )}
+            {users.length > 0 && (
+              <div className="-mx-5 -mb-4 overflow-x-auto">
+                {isFetching && (
+                  <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-2 text-xs font-medium text-slate-500">
+                    Updating team…
+                  </div>
+                )}
+                <table className="min-w-full divide-y divide-slate-100">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
+                        Name
+                      </th>
+                      <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
+                        Email
+                      </th>
+                      <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
+                        Role
+                      </th>
+                      <th className="px-5 py-3 text-left text-2xs font-semibold uppercase tracking-wide text-slate-500">
+                        Status
+                      </th>
+                      <th className="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {users.map((user) => (
+                      <tr key={user.id} className="hover:bg-slate-50">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-sm font-semibold">
+                              {user.name[0]?.toUpperCase()}
+                            </div>
+                            <span className="text-sm font-semibold text-slate-900">
+                              {user.name}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3 text-sm text-slate-700 whitespace-nowrap">
+                          {user.email}
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <RoleBadge role={user.role} />
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <Badge
+                            variant={user.status === 'ACTIVE' ? 'success' : 'default'}
+                            size="sm"
+                          >
+                            {user.status === 'ACTIVE' ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-3 text-right">
+                          <ActionMenu
+                            user={{ ...user, isActive: user.status === 'ACTIVE' }}
+                            onDeactivate={(id) => deactivateMutation.mutate(id)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {pagination && pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                <p className="text-sm text-slate-600">
+                  {(page - 1) * pagination.limit + 1}–
+                  {Math.min(page * pagination.limit, pagination.total)} of {pagination.total}
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page === 1}
+                    onClick={() => setPage((p) => p - 1)}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={page >= pagination.totalPages}
+                    onClick={() => setPage((p) => p + 1)}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </>
   );
 }
-
-
-
-
-
-

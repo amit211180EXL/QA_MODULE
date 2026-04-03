@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { authApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export default function ResetPasswordPage() {
+function ResetPasswordPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
@@ -66,7 +66,9 @@ export default function ResetPasswordPage() {
           <ShieldAlert className="h-6 w-6" />
         </div>
         <h1 className="text-lg font-bold text-slate-900 sm:text-xl">Link invalid or expired</h1>
-        <p className="mt-1.5 text-xs text-slate-600 sm:text-sm">Request a fresh reset email to continue.</p>
+        <p className="mt-1.5 text-xs text-slate-600 sm:text-sm">
+          Request a fresh reset email to continue.
+        </p>
         <div className="mt-4 text-left">
           <Alert variant="danger">
             Invalid reset link. Please request a new one.{' '}
@@ -109,7 +111,10 @@ export default function ResetPasswordPage() {
           />
         </div>
         <div>
-          <motion.div whileHover={reduceMotion ? undefined : { scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+          <motion.div
+            whileHover={reduceMotion ? undefined : { scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+          >
             <Button type="submit" className="w-full" isLoading={isSubmitting}>
               Update password
             </Button>
@@ -118,10 +123,21 @@ export default function ResetPasswordPage() {
       </form>
 
       <p className="mt-4 text-center text-xs sm:text-sm">
-        <Link href="/login" className="font-semibold text-primary-600 hover:text-primary-700 hover:underline">
+        <Link
+          href="/login"
+          className="font-semibold text-primary-600 hover:text-primary-700 hover:underline"
+        >
           ← Back to sign in
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }

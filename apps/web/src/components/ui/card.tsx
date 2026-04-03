@@ -15,7 +15,7 @@ export function Card({ className, bordered = true, shadow = 'sm', ...props }: Ca
     md: 'shadow-md',
     lg: 'shadow-lg',
   };
-  
+
   return (
     <div
       className={cn(
@@ -52,12 +52,7 @@ interface CardBodyProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function CardBody({ className, ...props }: CardBodyProps) {
-  return (
-    <div
-      className={cn('px-5 py-4', className)}
-      {...props}
-    />
-  );
+  return <div className={cn('px-5 py-4', className)} {...props} />;
 }
 
 interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -65,12 +60,7 @@ interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function CardFooter({ className, ...props }: CardFooterProps) {
-  return (
-    <div
-      className={cn('border-t border-slate-100 px-5 py-4', className)}
-      {...props}
-    />
-  );
+  return <div className={cn('border-t border-slate-100 px-5 py-4', className)} {...props} />;
 }
 
 interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
@@ -88,14 +78,7 @@ export function CardTitle({ className, level = 'h2', children, ...props }: CardT
   };
 
   return (
-    <HeadingTag
-      className={cn(
-        'text-slate-900',
-        sizeMap[level],
-        className,
-      )}
-      {...props}
-    >
+    <HeadingTag className={cn('text-slate-900', sizeMap[level], className)} {...props}>
       {children}
     </HeadingTag>
   );
@@ -106,10 +89,5 @@ interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement
 }
 
 export function CardDescription({ className, ...props }: CardDescriptionProps) {
-  return (
-    <p
-      className={cn('text-sm text-slate-600', className)}
-      {...props}
-    />
-  );
+  return <p className={cn('text-sm text-slate-600', className)} {...props} />;
 }

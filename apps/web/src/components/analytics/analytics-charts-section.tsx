@@ -17,20 +17,23 @@ import { Card, CardHeader, CardBody } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import type { OverviewKpis, AgentPerformanceRow, QuestionDeviationRow, RejectionReasonRow, DeviationTrendPoint } from '@/lib/analytics-api';
+import type { OverviewKpis, AgentPerformanceRow, QuestionDeviationRow } from '@/lib/analytics-api';
 
 function EmptyChart({ label }: { label: string }) {
-  return <div className="flex h-48 items-center justify-center text-sm text-slate-400">{label}</div>;
-}
-
-function shortDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  return (
+    <div className="flex h-48 items-center justify-center text-sm text-slate-400">{label}</div>
+  );
 }
 
 interface AnalyticsChartsSectionProps {
   trendChartData: Array<{ date: string; 'AI↔QA': number; 'QA↔Verifier': number }>;
-  agentChartData: Array<{ name: string; fullName: string; avgScore: number; passRate: number; total: number }>;
+  agentChartData: Array<{
+    name: string;
+    fullName: string;
+    avgScore: number;
+    passRate: number;
+    total: number;
+  }>;
   agents: AgentPerformanceRow[] | undefined;
   questionDevs: QuestionDeviationRow[] | undefined;
   kpis: OverviewKpis | undefined;
@@ -39,7 +42,12 @@ interface AnalyticsChartsSectionProps {
   trendsLoading: boolean;
   agentsLoading: boolean;
   questionDevsLoading: boolean;
-  downloadCSV: (rows: AgentPerformanceRow[], kpis: OverviewKpis | undefined, fromDate: string, toDate: string) => void;
+  downloadCSV: (
+    rows: AgentPerformanceRow[],
+    kpis: OverviewKpis | undefined,
+    fromDate: string,
+    toDate: string,
+  ) => void;
   downloadPDF: () => void;
 }
 
@@ -229,7 +237,9 @@ export function AnalyticsChartsSection({
                   {agents.map((row) => (
                     <tr key={row.agentId} className="hover:bg-slate-50">
                       <td className="px-5 py-3 font-medium text-slate-800">{row.agentName}</td>
-                      <td className="px-5 py-3 text-right text-slate-700">{row.totalEvaluations}</td>
+                      <td className="px-5 py-3 text-right text-slate-700">
+                        {row.totalEvaluations}
+                      </td>
                       <td className="px-5 py-3 text-right font-mono text-slate-700">
                         {row.avgScore.toFixed(1)}
                       </td>
@@ -290,7 +300,9 @@ export function AnalyticsChartsSection({
                 <tbody className="divide-y divide-slate-100">
                   {questionDevs.slice(0, 10).map((row) => (
                     <tr key={row.questionKey} className="hover:bg-slate-50">
-                      <td className="px-5 py-3 font-mono text-xs text-slate-700">{row.questionKey}</td>
+                      <td className="px-5 py-3 font-mono text-xs text-slate-700">
+                        {row.questionKey}
+                      </td>
                       <td className="px-5 py-3 text-right text-slate-700">{row.overrideCount}</td>
                       <td className="px-5 py-3 text-right">
                         <Badge variant={row.overrideRate >= 20 ? 'warning' : 'default'} size="md">

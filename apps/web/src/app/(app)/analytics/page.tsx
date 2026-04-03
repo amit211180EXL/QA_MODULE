@@ -1,17 +1,14 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { Topbar } from '@/components/layout/topbar';
 import { Card, CardHeader, CardBody } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import {
   analyticsApi,
   type OverviewKpis,
   type AgentPerformanceRow,
   type DeviationTrendPoint,
-  type QuestionDeviationRow,
   type VerifierOverrideRow,
   type RejectionReasonRow,
   type ScoreTrendDay,
@@ -31,11 +28,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { Download, BarChart3, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-type ExportQuestionRow = Pick<QuestionDeviationRow, 'questionKey' | 'overrideCount' | 'overrideRate'>;
-type ExportReasonRow = Pick<RejectionReasonRow, 'reason' | 'count' | 'rate'>;
+import { BarChart3, Sparkles } from 'lucide-react';
 
 function fmt(n: number | null | undefined, decimals = 0, suffix = ''): string {
   if (n == null) return '—';
@@ -48,124 +41,9 @@ function shortDate(iso: string): string {
 }
 
 function EmptyChart({ label }: { label: string }) {
-  return <div className="flex h-48 items-center justify-center text-sm text-slate-400">{label}</div>;
-}
-
-function downloadCSV(rows: AgentPerformanceRow[], kpis: OverviewKpis | undefined, fromDate: string, toDate: string) {
-  const lines: string[] = [];
-
-  // KPI summary block
-  lines.push('Summary');
-  lines.push(`Period,${fromDate} — ${toDate}`);
-  lines.push(`Total Conversations,${kpis?.totalConversations ?? ''}`);
-  lines.push(`Completed Evaluations,${kpis?.completedEvaluations ?? ''}`);
-  lines.push(`Pending QA,${kpis?.pendingQA ?? ''}`);
-  lines.push(`Pending Verifier,${kpis?.pendingVerifier ?? ''}`);
-  lines.push(`Avg Final Score,${kpis?.avgFinalScore?.toFixed(2) ?? ''}`);
-  lines.push(`Pass Rate,${kpis?.passRate?.toFixed(2) ?? ''}`);
-  lines.push(`AI <-> QA Deviation,${kpis?.avgAiQaDeviation?.toFixed(2) ?? ''}`);
-  lines.push('');
-
-  // Agent performance block
-  lines.push('Agent Performance');
-  lines.push('Agent,Evaluations,Avg Score,Pass Rate (%)');
-  for (const r of rows) {
-    const name = `"${r.agentName.replace(/"/g, '""')}"`;
-    lines.push(`${name},${r.totalEvaluations},${r.avgScore.toFixed(2)},${r.passRate.toFixed(2)}`);
-  }
-
-  const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `qa-analytics-${fromDate}-${toDate}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function downloadPDF({
-  kpis,
-  agents,
-  questionDevs,
-  rejectionReasons,
-  fromDate,
-  toDate,
-}: {
-  kpis: OverviewKpis | undefined;
-  agents: AgentPerformanceRow[];
-  questionDevs: ExportQuestionRow[];
-  rejectionReasons: ExportReasonRow[];
-  fromDate: string;
-  toDate: string;
-}) {
-  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable'),
-  ]);
-
-  const doc = new jsPDF();
-
-  doc.setFontSize(16);
-  doc.text('QA Analytics Report', 14, 16);
-  doc.setFontSize(10);
-  doc.text(`Period: ${fromDate} to ${toDate}`, 14, 22);
-
-  autoTable(doc, {
-    startY: 28,
-    head: [['Metric', 'Value']],
-    body: [
-      ['Total Conversations', String(kpis?.totalConversations ?? '—')],
-      ['Completed Evaluations', String(kpis?.completedEvaluations ?? '—')],
-      ['Pending QA', String(kpis?.pendingQA ?? '—')],
-      ['Pending Verifier', String(kpis?.pendingVerifier ?? '—')],
-      ['Avg Final Score', kpis?.avgFinalScore != null ? kpis.avgFinalScore.toFixed(2) : '—'],
-      ['Pass Rate', kpis?.passRate != null ? `${kpis.passRate.toFixed(2)}%` : '—'],
-      ['AI <-> QA Deviation', kpis?.avgAiQaDeviation != null ? kpis.avgAiQaDeviation.toFixed(2) : '—'],
-    ],
-    theme: 'grid',
-    headStyles: { fillColor: [55, 65, 81] },
-  });
-
-  autoTable(doc, {
-    head: [['Agent', 'Evaluations', 'Avg Score', 'Pass Rate']],
-    body:
-      agents.length > 0
-        ? agents.map((row) => [
-            row.agentName,
-            String(row.totalEvaluations),
-            row.avgScore.toFixed(2),
-            `${row.passRate.toFixed(2)}%`,
-          ])
-        : [['No data', '-', '-', '-']],
-    theme: 'striped',
-    headStyles: { fillColor: [79, 70, 229] },
-  });
-
-  autoTable(doc, {
-    head: [['Question Key', 'Overrides', 'Override Rate']],
-    body:
-      questionDevs.length > 0
-        ? questionDevs.slice(0, 10).map((row) => [
-            row.questionKey,
-            String(row.overrideCount),
-            `${row.overrideRate.toFixed(2)}%`,
-          ])
-        : [['No data', '-', '-']],
-    theme: 'striped',
-    headStyles: { fillColor: [245, 158, 11] },
-  });
-
-  autoTable(doc, {
-    head: [['Rejection Reason', 'Count', 'Rate']],
-    body:
-      rejectionReasons.length > 0
-        ? rejectionReasons.slice(0, 10).map((row) => [row.reason, String(row.count), `${row.rate.toFixed(2)}%`])
-        : [['No data', '-', '-']],
-    theme: 'striped',
-    headStyles: { fillColor: [5, 150, 105] },
-  });
-
-  doc.save(`qa-analytics-${fromDate}-${toDate}.pdf`);
+  return (
+    <div className="flex h-48 items-center justify-center text-sm text-slate-400">{label}</div>
+  );
 }
 
 function DateRange({
@@ -207,49 +85,65 @@ export default function AnalyticsPage() {
   const from = new Date(fromDate);
   const to = new Date(toDate);
 
-  const { data: kpis, isLoading: kpisLoading, isFetching: kpisFetching } = useQuery<OverviewKpis>({
+  const {
+    data: kpis,
+    isLoading: kpisLoading,
+    isFetching: kpisFetching,
+  } = useQuery<OverviewKpis>({
     queryKey: ['analytics', 'overview', fromDate, toDate],
     queryFn: () => analyticsApi.overview(from, to),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: agents, isLoading: agentsLoading, isFetching: agentsFetching } = useQuery<AgentPerformanceRow[]>({
+  const {
+    data: agents,
+    isLoading: agentsLoading,
+    isFetching: agentsFetching,
+  } = useQuery<AgentPerformanceRow[]>({
     queryKey: ['analytics', 'agents', fromDate, toDate],
     queryFn: () => analyticsApi.agentPerformance(from, to),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: trends, isLoading: trendsLoading, isFetching: trendsFetching } = useQuery<DeviationTrendPoint[]>({
+  const {
+    data: trends,
+    isLoading: trendsLoading,
+    isFetching: trendsFetching,
+  } = useQuery<DeviationTrendPoint[]>({
     queryKey: ['analytics', 'trends', fromDate, toDate],
     queryFn: () => analyticsApi.deviationTrends(from, to),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: questionDevs, isLoading: questionDevsLoading, isFetching: questionDevsFetching } = useQuery<QuestionDeviationRow[]>({
-    queryKey: ['analytics', 'question-deviations', fromDate, toDate],
-    queryFn: () => analyticsApi.questionDeviations(from, to),
-    staleTime: 60_000,
-    placeholderData: keepPreviousData,
-  });
-
-  const { data: verifierOverrides, isLoading: verifierOverridesLoading, isFetching: verifierOverridesFetching } = useQuery<VerifierOverrideRow[]>({
+  const {
+    data: verifierOverrides,
+    isLoading: verifierOverridesLoading,
+    isFetching: verifierOverridesFetching,
+  } = useQuery<VerifierOverrideRow[]>({
     queryKey: ['analytics', 'verifier-overrides', fromDate, toDate],
     queryFn: () => analyticsApi.verifierOverrides(from, to),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: rejectionReasons, isLoading: rejectionReasonsLoading, isFetching: rejectionReasonsFetching } = useQuery<RejectionReasonRow[]>({
+  const {
+    data: rejectionReasons,
+    isLoading: rejectionReasonsLoading,
+    isFetching: rejectionReasonsFetching,
+  } = useQuery<RejectionReasonRow[]>({
     queryKey: ['analytics', 'rejection-reasons', fromDate, toDate],
     queryFn: () => analyticsApi.rejectionReasons(from, to),
     staleTime: 60_000,
     placeholderData: keepPreviousData,
   });
 
-  const { data: scoreTrends } = useQuery<{ byDay: ScoreTrendDay[]; byChannel: ScoreTrendChannel[] }>({
+  const { data: scoreTrends } = useQuery<{
+    byDay: ScoreTrendDay[];
+    byChannel: ScoreTrendChannel[];
+  }>({
     queryKey: ['analytics', 'score-trends', fromDate, toDate],
     queryFn: () => analyticsApi.scoreTrends(from, to),
     staleTime: 60_000,
@@ -267,7 +161,6 @@ export default function AnalyticsPage() {
     kpisFetching ||
     agentsFetching ||
     trendsFetching ||
-    questionDevsFetching ||
     verifierOverridesFetching ||
     rejectionReasonsFetching;
 
@@ -489,7 +382,9 @@ export default function AnalyticsPage() {
         {/* Agent Performance and Question Analysis Tables */}
         <Card shadow="sm">
           <CardHeader>
-            <h3 className="text-lg font-semibold text-slate-900">Top Verifier Overrides by Question</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Top Verifier Overrides by Question
+            </h3>
             <p className="mt-1 text-sm text-slate-600">
               Questions where verifiers most often changed the QA answer (QA → Verifier deviance)
             </p>
@@ -617,7 +512,9 @@ export default function AnalyticsPage() {
           <Card className="lg:col-span-2" shadow="sm">
             <CardHeader>
               <div>
-                <h3 className="text-lg font-semibold text-slate-900">Daily Avg Score &amp; Pass Rate</h3>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Daily Avg Score &amp; Pass Rate
+                </h3>
                 <p className="mt-1 text-sm text-slate-600">Locked evaluations over the period</p>
               </div>
             </CardHeader>
@@ -737,10 +634,17 @@ export default function AnalyticsPage() {
                       <YAxis
                         tick={{ fontSize: 11 }}
                         width={50}
-                        tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v))}
+                        tickFormatter={(v: number) =>
+                          v >= 1000 ? `${(v / 1000).toFixed(0)}k` : String(v)
+                        }
                       />
                       <Tooltip formatter={(v) => (v as number).toLocaleString()} />
-                      <Bar dataKey="aiTokensUsed" name="Tokens" fill="#818cf8" radius={[3, 3, 0, 0]} />
+                      <Bar
+                        dataKey="aiTokensUsed"
+                        name="Tokens"
+                        fill="#818cf8"
+                        radius={[3, 3, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -758,7 +662,12 @@ export default function AnalyticsPage() {
                         tickFormatter={(v: number) => `$${v.toFixed(2)}`}
                       />
                       <Tooltip formatter={(v) => `$${(v as number).toFixed(2)}`} />
-                      <Bar dataKey="aiCostDollars" name="Cost" fill="#34d399" radius={[3, 3, 0, 0]} />
+                      <Bar
+                        dataKey="aiCostDollars"
+                        name="Cost"
+                        fill="#34d399"
+                        radius={[3, 3, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -770,9 +679,3 @@ export default function AnalyticsPage() {
     </>
   );
 }
-
-
-
-
-
-

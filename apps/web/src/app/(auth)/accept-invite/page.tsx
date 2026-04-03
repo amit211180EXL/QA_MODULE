@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { authApi } from '@/lib/api';
 import { setTokens } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,7 @@ const schema = z
 
 type FormValues = z.infer<typeof schema>;
 
-export default function AcceptInvitePage() {
+function AcceptInvitePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
@@ -88,5 +88,13 @@ export default function AcceptInvitePage() {
         </Button>
       </form>
     </>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={null}>
+      <AcceptInvitePageContent />
+    </Suspense>
   );
 }

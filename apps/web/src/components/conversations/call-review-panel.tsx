@@ -189,7 +189,12 @@ function extractTranscriptTurns(content: unknown): TranscriptTurn[] {
     }
   }
 
-  if (!candidates && asRecord && typeof asRecord.transcript === 'string' && asRecord.transcript.trim()) {
+  if (
+    !candidates &&
+    asRecord &&
+    typeof asRecord.transcript === 'string' &&
+    asRecord.transcript.trim()
+  ) {
     return [
       {
         role: 'transcript',
@@ -337,7 +342,8 @@ export function CallReviewPanel({
 
         const AudioContextCtor =
           window.AudioContext ||
-          (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+          (window as typeof window & { webkitAudioContext?: typeof AudioContext })
+            .webkitAudioContext;
 
         if (!AudioContextCtor) {
           throw new Error('AudioContext is not available in this browser.');
@@ -397,7 +403,9 @@ export function CallReviewPanel({
       {/* ── Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className={`flex h-7 w-7 items-center justify-center rounded-lg shadow-sm ${isCall ? 'bg-violet-500' : 'bg-blue-500'}`}>
+          <div
+            className={`flex h-7 w-7 items-center justify-center rounded-lg shadow-sm ${isCall ? 'bg-violet-500' : 'bg-blue-500'}`}
+          >
             {isCall ? (
               <Headphones className="h-3.5 w-3.5 text-white" />
             ) : (
@@ -531,14 +539,18 @@ export function CallReviewPanel({
                   }`}
                 >
                   <div className="mb-1 flex items-center justify-between gap-4">
-                    <p className={`text-[10px] font-bold uppercase tracking-wider ${isAgent ? 'text-white/60' : 'text-slate-400'}`}>
+                    <p
+                      className={`text-[10px] font-bold uppercase tracking-wider ${isAgent ? 'text-white/60' : 'text-slate-400'}`}
+                    >
                       {turn.role}
                     </p>
                     {turn.timestampLabel && (
                       <button
                         type="button"
                         className={`rounded px-1 text-[10px] font-semibold tabular-nums transition-all hover:bg-black/10 ${isAgent ? 'text-white/60 hover:text-white/90' : 'text-slate-400 hover:text-slate-700'}`}
-                        onClick={() => turn.timestampSeconds !== null && seekTo(turn.timestampSeconds)}
+                        onClick={() =>
+                          turn.timestampSeconds !== null && seekTo(turn.timestampSeconds)
+                        }
                       >
                         {turn.timestampLabel}
                       </button>

@@ -17,7 +17,7 @@ function RouteTransitionLoaderComponent() {
 
   // Start the bar whenever the pathname changes.
   useEffect(() => {
-    if (pathname === prevPath.current) return;     // same page, skip
+    if (pathname === prevPath.current) return; // same page, skip
     prevPath.current = pathname;
 
     // Clear any running animation

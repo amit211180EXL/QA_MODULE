@@ -4,10 +4,7 @@
  */
 export function AppAtmosphere() {
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-    >
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="absolute -left-24 -top-32 h-[28rem] w-[28rem] rounded-full bg-primary-400/[0.12] blur-3xl motion-safe:animate-aurora" />
       <div className="absolute -right-20 top-1/4 h-[22rem] w-[22rem] rounded-full bg-accent-500/[0.10] blur-3xl motion-safe:animate-aurora-delayed" />
       <div className="absolute bottom-0 left-1/3 h-80 w-80 rounded-full bg-primary-600/[0.06] blur-3xl motion-safe:animate-float-slow" />

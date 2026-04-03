@@ -86,7 +86,10 @@ export const usersApi = {
     search?: string;
     role?: string;
     status?: string;
-  }) => api.get<{ data: PaginatedResponse<CurrentUser> }>('/users', { params }).then((r) => r.data.data),
+  }) =>
+    api
+      .get<{ data: PaginatedResponse<CurrentUser> }>('/users', { params })
+      .then((r) => r.data.data),
 
   create: (payload: CreateUserPayload) =>
     api.post<{ data: CreateUserResult }>('/users', payload).then((r) => r.data.data),
@@ -158,7 +161,13 @@ export interface ConversationDetail extends ConversationListItem {
 }
 
 export const conversationsApi = {
-  list: (params?: { status?: string; agentId?: string; search?: string; page?: number; limit?: number }) =>
+  list: (params?: {
+    status?: string;
+    agentId?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }) =>
     api
       .get<{ data: ConversationListResponse }>('/conversations', { params })
       .then((r) => r.data.data),
@@ -184,9 +193,9 @@ export const conversationsApi = {
 
   backfillPending: () =>
     api
-      .post<{ data: { processed: number; skipped: number; reason: string[] } }>(
-        '/conversations/backfill-pending',
-      )
+      .post<{
+        data: { processed: number; skipped: number; reason: string[] };
+      }>('/conversations/backfill-pending')
       .then((r) => r.data.data),
 };
 
@@ -241,7 +250,9 @@ export interface FormDetail extends FormListItem {
 
 export const formsApi = {
   list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
-    api.get<{ data: PaginatedResponse<FormListItem> }>('/forms', { params }).then((r) => r.data.data),
+    api
+      .get<{ data: PaginatedResponse<FormListItem> }>('/forms', { params })
+      .then((r) => r.data.data),
 
   get: (id: string) => api.get<{ data: FormDetail }>(`/forms/${id}`).then((r) => r.data.data),
 
@@ -372,8 +383,7 @@ export interface PortalSessionResult {
 export const billingApi = {
   getSubscription: () =>
     api.get<{ data: BillingSubscription }>('/billing').then((r) => r.data.data),
-  getUsage: () =>
-    api.get<{ data: BillingUsage }>('/billing/usage').then((r) => r.data.data),
+  getUsage: () => api.get<{ data: BillingUsage }>('/billing/usage').then((r) => r.data.data),
   createCheckoutSession: (payload: {
     plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
     successUrl: string;
@@ -394,9 +404,13 @@ export const billingApi = {
       .post<{ data: PortalSessionResult }>('/billing/stripe/portal-session', payload)
       .then((r) => r.data.data),
   cancelSubscription: () =>
-    api.post<{ data: { status: string; cancelAtPeriodEnd: boolean } }>('/billing/stripe/cancel').then((r) => r.data.data),
+    api
+      .post<{ data: { status: string; cancelAtPeriodEnd: boolean } }>('/billing/stripe/cancel')
+      .then((r) => r.data.data),
   resumeSubscription: () =>
-    api.post<{ data: { status: string; cancelAtPeriodEnd: boolean } }>('/billing/stripe/resume').then((r) => r.data.data),
+    api
+      .post<{ data: { status: string; cancelAtPeriodEnd: boolean } }>('/billing/stripe/resume')
+      .then((r) => r.data.data),
 };
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
@@ -410,6 +424,5 @@ export interface OnboardingStatus {
 }
 
 export const onboardingApi = {
-  getStatus: () =>
-    api.get<OnboardingStatus>('/settings/onboarding-status').then((r) => r.data),
+  getStatus: () => api.get<OnboardingStatus>('/settings/onboarding-status').then((r) => r.data),
 };

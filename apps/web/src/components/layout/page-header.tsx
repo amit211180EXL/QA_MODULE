@@ -22,10 +22,7 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <div
-      className={cn(
-        'flex flex-col gap-4 md:flex-row md:items-end md:justify-between',
-        className,
-      )}
+      className={cn('flex flex-col gap-4 md:flex-row md:items-end md:justify-between', className)}
     >
       <div>
         {eyebrow ? (

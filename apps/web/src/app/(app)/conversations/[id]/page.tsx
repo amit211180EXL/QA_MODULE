@@ -43,7 +43,9 @@ function StatusBadge({ status }: { status: string }) {
 function MetaRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3 py-2.5 border-b border-slate-50 last:border-0">
-      <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
+      <dt className="w-32 shrink-0 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {label}
+      </dt>
       <dd className="text-sm text-slate-700 break-all">{children}</dd>
     </div>
   );
@@ -63,11 +65,7 @@ function ScoreTile({
   active?: boolean;
 }) {
   const colour =
-    passFail === true
-      ? 'text-emerald-600'
-      : passFail === false
-        ? 'text-red-500'
-        : 'text-slate-700';
+    passFail === true ? 'text-emerald-600' : passFail === false ? 'text-red-500' : 'text-slate-700';
 
   return (
     <div
@@ -84,12 +82,10 @@ function ScoreTile({
         <>
           <span className={`text-3xl font-black tabular-nums ${colour}`}>{score.toFixed(1)}%</span>
           {passFail !== null && passFail !== undefined && (
-            <span className={`mt-1.5 flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${passFail ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}>
-              {passFail ? (
-                <CheckCircle2 className="h-3 w-3" />
-              ) : (
-                <XCircle className="h-3 w-3" />
-              )}
+            <span
+              className={`mt-1.5 flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${passFail ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}`}
+            >
+              {passFail ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
               {passFail ? 'Pass' : 'Fail'}
             </span>
           )}
@@ -108,8 +104,7 @@ function ScoreSummaryBanner({ conv }: { conv: ConversationDetail }) {
   if (!ev) return null;
 
   const isLocked = ev.workflowState === 'LOCKED';
-  const isQa =
-    ev.workflowState === 'QA_PENDING' || ev.workflowState === 'QA_IN_PROGRESS';
+  const isQa = ev.workflowState === 'QA_PENDING' || ev.workflowState === 'QA_IN_PROGRESS';
   const isVerifier =
     ev.workflowState === 'VERIFIER_PENDING' || ev.workflowState === 'VERIFIER_IN_PROGRESS';
   const isEscalated = ev.isEscalated;
@@ -152,11 +147,7 @@ function ScoreSummaryBanner({ conv }: { conv: ConversationDetail }) {
       <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
         <ScoreTile label="AI Score" score={ev.aiScore} />
         <ScoreTile label="QA Score" score={ev.qaScore} active={isQa} />
-        <ScoreTile
-          label="Verifier Score"
-          score={ev.verifierScore}
-          active={isVerifier}
-        />
+        <ScoreTile label="Verifier Score" score={ev.verifierScore} active={isVerifier} />
         <ScoreTile
           label="Final Score"
           score={ev.finalScore}

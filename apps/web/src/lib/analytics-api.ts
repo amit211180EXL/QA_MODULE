@@ -113,9 +113,7 @@ export const analyticsApi = {
     const params = new URLSearchParams();
     if (from) params.set('from', from.toISOString());
     if (to) params.set('to', to.toISOString());
-    return api
-      .get<EscalationStats>(`/analytics/escalation-stats?${params}`)
-      .then((r) => r.data);
+    return api.get<EscalationStats>(`/analytics/escalation-stats?${params}`).then((r) => r.data);
   },
 
   verifierOverrides: (from?: Date, to?: Date) => {
@@ -141,9 +139,10 @@ export const analyticsApi = {
     if (from) params.set('from', from.toISOString());
     if (to) params.set('to', to.toISOString());
     return api
-      .get<{ byDay: ScoreTrendDay[]; byChannel: ScoreTrendChannel[] }>(
-        `/analytics/score-trends?${params}`,
-      )
+      .get<{
+        byDay: ScoreTrendDay[];
+        byChannel: ScoreTrendChannel[];
+      }>(`/analytics/score-trends?${params}`)
       .then((r) => r.data);
   },
 
@@ -151,8 +150,6 @@ export const analyticsApi = {
     const params = new URLSearchParams();
     if (from) params.set('from', from.toISOString());
     if (to) params.set('to', to.toISOString());
-    return api
-      .get<AiUsageTrendPoint[]>(`/analytics/ai-usage-trends?${params}`)
-      .then((r) => r.data);
+    return api.get<AiUsageTrendPoint[]>(`/analytics/ai-usage-trends?${params}`).then((r) => r.data);
   },
 };

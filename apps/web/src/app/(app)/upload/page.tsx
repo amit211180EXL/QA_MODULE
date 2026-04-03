@@ -31,14 +31,7 @@ function parseCSV(text: string): { rows: ParsedRow[]; errors: string[] } {
     return { rows: [], errors: ['File appears to be empty or has no data rows.'] };
   }
 
-  const headers = lines[0]
-    .split(',')
-    .map((h) =>
-      h
-        .trim()
-        .replace(/^"|"$/g, '')
-        .toLowerCase(),
-    );
+  const headers = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, '').toLowerCase());
 
   const contentIdx = headers.indexOf('content');
   if (contentIdx === -1) {
@@ -308,7 +301,6 @@ export default function UploadPage() {
     <>
       <Topbar title="Upload Conversations" />
       <div>
-
         {/* ── Page header card ── */}
         <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
           <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
@@ -373,197 +365,211 @@ export default function UploadPage() {
 
         {/* ── Two-column layout: upload + sidebar ── */}
         <div className="flex gap-5">
-        <div className="min-w-0 flex-1">
-
-        {/* ── Upload area ── */}
-        {mode === 'csv' ? (
-          <div>
-            {!fileName ? (
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
-                onDragLeave={() => setIsDragging(false)}
-                onDrop={handleFileDrop}
-                onClick={() => fileRef.current?.click()}
-                className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed py-12 transition-all ${
-                  isDragging
-                    ? 'border-blue-400 bg-blue-50 shadow-inner'
-                    : 'border-slate-200 bg-slate-50/60 hover:border-blue-300 hover:bg-blue-50/30'
-                }`}
-              >
-                <div className={`mb-4 rounded-2xl p-4 transition-colors ${isDragging ? 'bg-blue-100' : 'bg-white shadow-sm border border-slate-100'}`}>
-                  <Upload className={`h-8 w-8 transition-colors ${isDragging ? 'text-blue-500' : 'text-slate-300'}`} />
-                </div>
-                <p className="text-sm font-semibold text-slate-700">
-                  Drop your CSV or JSON file here
-                </p>
-                <p className="mt-1 text-xs text-slate-400">or click to browse</p>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv,.json"
-                  className="hidden"
-                  onChange={handleFileInput}
-                />
+          <div className="min-w-0 flex-1">
+            {/* ── Upload area ── */}
+            {mode === 'csv' ? (
+              <div>
+                {!fileName ? (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDragging(true);
+                    }}
+                    onDragLeave={() => setIsDragging(false)}
+                    onDrop={handleFileDrop}
+                    onClick={() => fileRef.current?.click()}
+                    className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed py-12 transition-all ${
+                      isDragging
+                        ? 'border-blue-400 bg-blue-50 shadow-inner'
+                        : 'border-slate-200 bg-slate-50/60 hover:border-blue-300 hover:bg-blue-50/30'
+                    }`}
+                  >
+                    <div
+                      className={`mb-4 rounded-2xl p-4 transition-colors ${isDragging ? 'bg-blue-100' : 'bg-white shadow-sm border border-slate-100'}`}
+                    >
+                      <Upload
+                        className={`h-8 w-8 transition-colors ${isDragging ? 'text-blue-500' : 'text-slate-300'}`}
+                      />
+                    </div>
+                    <p className="text-sm font-semibold text-slate-700">
+                      Drop your CSV or JSON file here
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">or click to browse</p>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept=".csv,.json"
+                      className="hidden"
+                      onChange={handleFileInput}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-lg bg-blue-100 p-1.5">
+                        <FileText className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <span className="text-sm font-semibold text-blue-800">{fileName}</span>
+                      {parsedRows.length > 0 && (
+                        <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+                          {parsedRows.length} row{parsedRows.length !== 1 ? 's' : ''} parsed
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={clearFile}
+                      className="rounded-lg p-1.5 text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="flex items-center justify-between rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-blue-100 p-1.5">
-                    <FileText className="h-4 w-4 text-blue-600" />
+              /* JSON mode */
+              <div className="space-y-3">
+                <textarea
+                  rows={10}
+                  value={jsonText}
+                  onChange={(e) => {
+                    setJsonText(e.target.value);
+                    setParsedRows([]);
+                    setParseErrors([]);
+                    uploadMutation.reset();
+                  }}
+                  placeholder={
+                    '[\n  {\n    "externalId": "conv-001",\n    "agentName": "Jane Smith",\n    "content": "Hello, how can I help?",\n    "receivedAt": "2024-01-15T10:00:00Z"\n  }\n]'
+                  }
+                  className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <Button variant="secondary" onClick={handleJsonParse} disabled={!jsonText.trim()}>
+                  Parse JSON
+                </Button>
+              </div>
+            )}
+
+            {/* ── Parse errors ── */}
+            {parseErrors.length > 0 && (
+              <div className="mt-4 space-y-1.5">
+                {parseErrors.map((e, i) => (
+                  <div
+                    key={i}
+                    className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
+                  >
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                    <p className="text-sm text-red-700">{e}</p>
                   </div>
-                  <span className="text-sm font-semibold text-blue-800">{fileName}</span>
-                  {parsedRows.length > 0 && (
-                    <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-xs font-semibold text-white">
-                      {parsedRows.length} row{parsedRows.length !== 1 ? 's' : ''} parsed
-                    </span>
-                  )}
+                ))}
+              </div>
+            )}
+
+            {/* ── Preview + upload action ── */}
+            {parsedRows.length > 0 && !uploadMutation.isSuccess && (
+              <>
+                <PreviewTable rows={parsedRows} />
+                <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                  <p className="text-sm text-slate-600">
+                    <span className="font-bold text-slate-900">{parsedRows.length}</span>{' '}
+                    conversation
+                    {parsedRows.length !== 1 ? 's' : ''} ready · channel{' '}
+                    <span className="font-semibold capitalize text-blue-600">{channel}</span>
+                  </p>
+                  <Button
+                    isLoading={uploadMutation.isPending}
+                    onClick={handleUpload}
+                    disabled={parsedRows.length === 0}
+                  >
+                    <Upload className="mr-2 h-4 w-4" />
+                    Upload {parsedRows.length} conversation{parsedRows.length !== 1 ? 's' : ''}
+                  </Button>
                 </div>
+              </>
+            )}
+
+            {/* ── Upload error ── */}
+            {uploadMutation.isError && (
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                <p className="text-sm text-red-700">Upload failed. Please try again.</p>
+              </div>
+            )}
+
+            {/* ── Success ── */}
+            {uploadMutation.isSuccess && (
+              <div className="mt-6 flex flex-col items-center rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white py-14 shadow-sm">
+                <div className="mb-4 rounded-2xl bg-emerald-100 p-4">
+                  <CheckCircle className="h-10 w-10 text-emerald-500" />
+                </div>
+                <p className="text-lg font-bold text-emerald-800">Upload successful</p>
+                <p className="mt-1 text-sm text-emerald-600">
+                  {(uploadMutation.data as { uploaded?: number })?.uploaded ?? 0} conversation
+                  {((uploadMutation.data as { uploaded?: number })?.uploaded ?? 0) !== 1
+                    ? 's'
+                    : ''}{' '}
+                  imported and queued for AI evaluation
+                </p>
                 <button
-                  onClick={clearFile}
-                  className="rounded-lg p-1.5 text-blue-400 transition-colors hover:bg-blue-100 hover:text-blue-600"
+                  onClick={() => uploadMutation.reset()}
+                  className="mt-5 rounded-xl border border-emerald-200 bg-white px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-50"
                 >
-                  <X className="h-4 w-4" />
+                  Upload more
                 </button>
               </div>
             )}
           </div>
-        ) : (
-          /* JSON mode */
-          <div className="space-y-3">
-            <textarea
-              rows={10}
-              value={jsonText}
-              onChange={(e) => {
-                setJsonText(e.target.value);
-                setParsedRows([]);
-                setParseErrors([]);
-                uploadMutation.reset();
-              }}
-              placeholder={'[\n  {\n    "externalId": "conv-001",\n    "agentName": "Jane Smith",\n    "content": "Hello, how can I help?",\n    "receivedAt": "2024-01-15T10:00:00Z"\n  }\n]'}
-              className="block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-mono text-xs text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <Button variant="secondary" onClick={handleJsonParse} disabled={!jsonText.trim()}>
-              Parse JSON
-            </Button>
-          </div>
-        )}
+          {/* end flex-1 */}
 
-        {/* ── Parse errors ── */}
-        {parseErrors.length > 0 && (
-          <div className="mt-4 space-y-1.5">
-            {parseErrors.map((e, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
-              >
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-                <p className="text-sm text-red-700">{e}</p>
+          {/* ── Format guidance sidebar ── */}
+          <div className="w-72 shrink-0">
+            <div className="sticky top-20 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/60">
+              <div className="border-b border-slate-100 px-4 py-3">
+                <h3 className="text-sm font-semibold text-slate-700">
+                  {mode === 'csv' ? 'CSV Format' : 'JSON Format'}
+                </h3>
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Preview + upload action ── */}
-        {parsedRows.length > 0 && !uploadMutation.isSuccess && (
-          <>
-            <PreviewTable rows={parsedRows} />
-            <div className="mt-4 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <p className="text-sm text-slate-600">
-                <span className="font-bold text-slate-900">{parsedRows.length}</span> conversation
-                {parsedRows.length !== 1 ? 's' : ''} ready · channel{' '}
-                <span className="font-semibold capitalize text-blue-600">{channel}</span>
-              </p>
-              <Button
-                isLoading={uploadMutation.isPending}
-                onClick={handleUpload}
-                disabled={parsedRows.length === 0}
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                Upload {parsedRows.length} conversation{parsedRows.length !== 1 ? 's' : ''}
-              </Button>
-            </div>
-          </>
-        )}
-
-        {/* ── Upload error ── */}
-        {uploadMutation.isError && (
-          <div className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-            <p className="text-sm text-red-700">Upload failed. Please try again.</p>
-          </div>
-        )}
-
-        {/* ── Success ── */}
-        {uploadMutation.isSuccess && (
-          <div className="mt-6 flex flex-col items-center rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white py-14 shadow-sm">
-            <div className="mb-4 rounded-2xl bg-emerald-100 p-4">
-              <CheckCircle className="h-10 w-10 text-emerald-500" />
-            </div>
-            <p className="text-lg font-bold text-emerald-800">Upload successful</p>
-            <p className="mt-1 text-sm text-emerald-600">
-              {(uploadMutation.data as { uploaded?: number })?.uploaded ?? 0} conversation
-              {((uploadMutation.data as { uploaded?: number })?.uploaded ?? 0) !== 1 ? 's' : ''}{' '}
-              imported and queued for AI evaluation
-            </p>
-            <button
-              onClick={() => uploadMutation.reset()}
-              className="mt-5 rounded-xl border border-emerald-200 bg-white px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition-colors hover:bg-emerald-50"
-            >
-              Upload more
-            </button>
-          </div>
-        )}
-
-        </div>{/* end flex-1 */}
-
-        {/* ── Format guidance sidebar ── */}
-        <div className="w-72 shrink-0">
-          <div className="sticky top-20 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/60">
-            <div className="border-b border-slate-100 px-4 py-3">
-              <h3 className="text-sm font-semibold text-slate-700">
-                {mode === 'csv' ? 'CSV Format' : 'JSON Format'}
-              </h3>
-            </div>
-            <div className="px-4 py-4">
-              {mode === 'csv' ? (
-                <pre className="overflow-x-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-relaxed text-emerald-300">
-                  {`externalId,agentName,agentId,\n  customerRef,content,receivedAt\nconv-001,Jane Smith,agent-1,\n  cust-abc,"Hello!",2024-01-15`}
-                </pre>
-              ) : (
-                <pre className="overflow-x-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-relaxed text-emerald-300">
-                  {`[\n  {\n    "externalId": "conv-001",\n    "agentName": "Jane Smith",\n    "content": "Hello!",\n    "receivedAt": "2024-01-15"\n  }\n]`}
-                </pre>
-              )}
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                  <span className="text-xs text-slate-600"><span className="font-semibold">Required:</span> content</span>
+              <div className="px-4 py-4">
+                {mode === 'csv' ? (
+                  <pre className="overflow-x-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-relaxed text-emerald-300">
+                    {`externalId,agentName,agentId,\n  customerRef,content,receivedAt\nconv-001,Jane Smith,agent-1,\n  cust-abc,"Hello!",2024-01-15`}
+                  </pre>
+                ) : (
+                  <pre className="overflow-x-auto rounded-xl bg-slate-950 p-3 text-[11px] leading-relaxed text-emerald-300">
+                    {`[\n  {\n    "externalId": "conv-001",\n    "agentName": "Jane Smith",\n    "content": "Hello!",\n    "receivedAt": "2024-01-15"\n  }\n]`}
+                  </pre>
+                )}
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                    <span className="text-xs text-slate-600">
+                      <span className="font-semibold">Required:</span> content
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
+                    <span className="text-xs text-slate-500">
+                      <span className="font-medium">Optional:</span> externalId, agentName, agentId,
+                      customerRef, receivedAt
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                    <span className="text-xs text-slate-500">Max 500 rows per upload</span>
+                  </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-slate-300" />
-                  <span className="text-xs text-slate-500"><span className="font-medium">Optional:</span> externalId, agentName, agentId, customerRef, receivedAt</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-                  <span className="text-xs text-slate-500">Max 500 rows per upload</span>
-                </div>
+                {mode === 'csv' && (
+                  <button
+                    onClick={downloadTemplate}
+                    className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    Download CSV Template
+                  </button>
+                )}
               </div>
-              {mode === 'csv' && (
-                <button
-                  onClick={downloadTemplate}
-                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50"
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  Download CSV Template
-                </button>
-              )}
             </div>
           </div>
         </div>
-        </div>{/* end two-column flex */}
+        {/* end two-column flex */}
       </div>
     </>
   );

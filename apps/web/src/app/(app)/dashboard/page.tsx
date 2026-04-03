@@ -104,7 +104,6 @@ export default function DashboardPage() {
     <>
       <Topbar title="Dashboard" />
       <div className="space-y-6">
-
         {/* Welcome section */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -112,9 +111,10 @@ export default function DashboardPage() {
               Command center
             </p>
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-              Welcome back,{' '}
-              <span className="text-gradient-brand">{firstName}</span>{' '}
-              <span className="inline-block origin-bottom-right motion-safe:animate-float-slow">👋</span>
+              Welcome back, <span className="text-gradient-brand">{firstName}</span>{' '}
+              <span className="inline-block origin-bottom-right motion-safe:animate-float-slow">
+                👋
+              </span>
             </h1>
             <p className="mt-2 max-w-xl text-base text-slate-600">
               Real-time signal across queues, scores, and escalations — tuned for fast decisions.
@@ -133,9 +133,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {CARD_CONFIG.map(({ key, label, sub, icon: Icon, color, ...rest }) => {
             const isAlert =
-              'alert' in rest &&
-              rest.alert &&
-              (escalation?.pendingEscalation ?? 0) > 0;
+              'alert' in rest && rest.alert && (escalation?.pendingEscalation ?? 0) > 0;
             return (
               <div
                 key={key}
@@ -195,7 +193,8 @@ export default function DashboardPage() {
                   Ship a sharper QA loop
                 </h2>
                 <p className="mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-                  Wire the LLM, publish rubrics, and route conversations — everything stays traceable.
+                  Wire the LLM, publish rubrics, and route conversations — everything stays
+                  traceable.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 sm:justify-end">
@@ -221,7 +220,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-
       </div>
     </>
   );
