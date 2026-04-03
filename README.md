@@ -140,6 +140,15 @@ Optional environment overrides for target PostgreSQL server:
 # Prisma Studio (master DB)
 pnpm --filter @qa/prisma-master db:studio
 
+# Seed sample conversations for all channels (CHAT/EMAIL/CALL/SOCIAL)
+pnpm db:seed:channels
+
+# Seed sample conversations for dev tenant slug
+pnpm db:seed:channels:dev
+
+# Seed 2 per channel for a specific tenant
+node scripts/seed-channel-conversations.cjs --tenant=dev-tenant --count=2
+
 # New master migration
 pnpm --filter @qa/prisma-master migrate:dev --name <migration_name>
 

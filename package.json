@@ -19,6 +19,8 @@
     "db:migrate:deploy:all": "pnpm --filter @qa/prisma-master migrate:deploy ; pnpm --filter @qa/prisma-tenant migrate:deploy",
     "db:generate": "pnpm --recursive db:generate",
     "db:seed": "node scripts/seed-runner.cjs",
+    "db:seed:channels": "node scripts/seed-channel-conversations.cjs",
+    "db:seed:channels:dev": "node scripts/seed-channel-conversations.cjs --tenant=dev-tenant",
     "db:bootstrap:server": "bash ./scripts/bootstrap-server.sh",
     "db:bootstrap:server:windows": "powershell -ExecutionPolicy Bypass -File .\\scripts\\bootstrap-server.ps1",
     "smoke:auth": "node scripts/smoke-auth.cjs",
