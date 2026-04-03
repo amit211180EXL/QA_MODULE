@@ -97,6 +97,43 @@ Critical variables:
 
 Tenant DB connections are lazily pooled per-request using `TenantConnectionPool`.
 
+## Move To Another Server (DB Quick Setup)
+
+Use the bootstrap SQL file to provision the required PostgreSQL roles/database on a fresh server:
+
+```bash
+psql -U postgres -d postgres -f db-server-bootstrap.sql
+```
+
+Then run Prisma migrations on the new server:
+
+```bash
+pnpm install
+pnpm db:generate
+pnpm db:migrate:deploy:all
+pnpm db:seed
+```
+
+Before running, update passwords in `db-server-bootstrap.sql` and match them in `.env` (`MASTER_DATABASE_URL`, `TENANT_DB_SUPERUSER`, `TENANT_DB_SUPERUSER_PASSWORD`).
+
+One-command setup scripts are also available:
+
+```bash
+# Linux/macOS
+pnpm db:bootstrap:server
+
+# Windows PowerShell
+pnpm db:bootstrap:server:windows
+```
+
+Optional environment overrides for target PostgreSQL server:
+
+- `POSTGRES_HOST` (default: `localhost`)
+- `POSTGRES_PORT` (default: `5432`)
+- `POSTGRES_USER` (default: `postgres`)
+- `POSTGRES_DB` (default: `postgres`)
+- `BOOTSTRAP_SQL` (default: `./db-server-bootstrap.sql`)
+
 ## Useful Commands
 
 ```bash
