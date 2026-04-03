@@ -116,6 +116,29 @@ pnpm db:seed
 
 Before running, update passwords in `db-server-bootstrap.sql` and match them in `.env` (`MASTER_DATABASE_URL`, `TENANT_DB_SUPERUSER`, `TENANT_DB_SUPERUSER_PASSWORD`).
 
+If Linux deployment shows `provided credentials for qa_master are not valid`, run:
+
+```bash
+sudo -u postgres psql
+ALTER ROLE qa_master WITH LOGIN PASSWORD 'your_master_password';
+ALTER ROLE qa_superuser WITH LOGIN PASSWORD 'your_tenant_superuser_password' CREATEDB CREATEROLE;
+\q
+```
+
+Then ensure `.env` matches exactly:
+
+```env
+MASTER_DATABASE_URL=postgresql://qa_master:your_master_password@<db-host>:5432/qa_master
+TENANT_DB_SUPERUSER=qa_superuser
+TENANT_DB_SUPERUSER_PASSWORD=your_tenant_superuser_password
+```
+
+Optional verification:
+
+```bash
+PGPASSWORD='your_master_password' psql -h <db-host> -U qa_master -d qa_master -c 'SELECT 1;'
+```
+
 One-command setup scripts are also available:
 
 ```bash

@@ -31,6 +31,12 @@ if [[ ! -f "$BOOTSTRAP_SQL" ]]; then
   exit 1
 fi
 
+if grep -q "CHANGE_ME_MASTER_PASSWORD\|CHANGE_ME_TENANT_SUPERUSER_PASSWORD" "$BOOTSTRAP_SQL"; then
+  echo "Error: db-server-bootstrap.sql still contains placeholder passwords."
+  echo "Update CHANGE_ME_MASTER_PASSWORD and CHANGE_ME_TENANT_SUPERUSER_PASSWORD first."
+  exit 1
+fi
+
 if [[ ! -f "$ROOT_DIR/.env" ]]; then
   echo "Error: .env not found in repo root ($ROOT_DIR/.env)."
   echo "Create it first (for example: cp .env.example .env)."

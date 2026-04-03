@@ -27,6 +27,11 @@ if (-not (Test-Path -LiteralPath $bootstrapSql)) {
   throw "Bootstrap SQL file not found at: $bootstrapSql"
 }
 
+$bootstrapSqlText = Get-Content -LiteralPath $bootstrapSql -Raw
+if ($bootstrapSqlText -match 'CHANGE_ME_MASTER_PASSWORD|CHANGE_ME_TENANT_SUPERUSER_PASSWORD') {
+  throw 'db-server-bootstrap.sql still contains placeholder passwords. Update both CHANGE_ME values first.'
+}
+
 $envFile = Join-Path $rootDir '.env'
 if (-not (Test-Path -LiteralPath $envFile)) {
   throw ".env not found in repo root ($envFile). Create it first (for example: copy .env.example .env)."

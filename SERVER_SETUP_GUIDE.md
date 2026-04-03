@@ -53,10 +53,39 @@ Edit passwords in `db-server-bootstrap.sql`, then run:
 psql -U postgres -d postgres -f db-server-bootstrap.sql
 ```
 
+Important: the script now fails if it still contains placeholder values (`CHANGE_ME_*`).
+
 This creates:
 - **Role** `qa_master` — owns the master database
 - **Database** `qa_master` — stores tenants, users, billing, LLM configs
 - **Role** `qa_superuser` (with CREATEDB, CREATEROLE) — used by the app to provision per-tenant databases at runtime
+
+#### 2b-1a. Fix invalid `qa_master` credentials (common Linux issue)
+
+If startup logs say `provided credentials for qa_master are not valid`, run:
+
+```bash
+sudo -u postgres psql
+ALTER ROLE qa_master WITH LOGIN PASSWORD 'your_master_password';
+ALTER ROLE qa_superuser WITH LOGIN PASSWORD 'your_tenant_superuser_password' CREATEDB CREATEROLE;
+\q
+```
+
+Then ensure `apps/api/.env` matches exactly:
+
+```env
+MASTER_DATABASE_URL=postgresql://qa_master:your_master_password@<DB_HOST>:5432/qa_master
+TENANT_DB_SUPERUSER=qa_superuser
+TENANT_DB_SUPERUSER_PASSWORD=your_tenant_superuser_password
+```
+
+Verify login directly:
+
+```bash
+PGPASSWORD='your_master_password' psql -h <DB_HOST> -U qa_master -d qa_master -c 'SELECT 1;'
+```
+
+If login still fails, check authentication method (`pg_hba.conf`) and ensure host entries use `md5` or `scram-sha-256`.
 
 #### 2b-2. Redis
 
@@ -341,6 +370,12 @@ QA_MODULE/
 
 ### "role qa_master does not exist"
 Run the bootstrap SQL first: `psql -U postgres -d postgres -f db-server-bootstrap.sql`
+
+### "provided credentials for qa_master are not valid"
+1. Reset role passwords via `ALTER ROLE` as shown above.
+2. Ensure `.env` uses the same credentials.
+3. Verify with `psql -h <DB_HOST> -U qa_master -d qa_master -c 'SELECT 1;'`.
+4. If needed, update `pg_hba.conf` to `md5`/`scram-sha-256` and reload PostgreSQL.
 
 ### "MASTER_ENCRYPTION_KEY must be 64 hex characters"
 Generate one: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`

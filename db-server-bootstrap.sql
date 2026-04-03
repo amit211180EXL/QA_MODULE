@@ -18,6 +18,10 @@ DECLARE
   v_tenant_super_user text := 'qa_superuser';
   v_tenant_super_pass text := 'CHANGE_ME_TENANT_SUPERUSER_PASSWORD';
 BEGIN
+  IF v_master_pass LIKE 'CHANGE_ME%' OR v_tenant_super_pass LIKE 'CHANGE_ME%' THEN
+    RAISE EXCEPTION 'Update placeholder passwords in db-server-bootstrap.sql before running this script.';
+  END IF;
+
   -- Master app role (owns master DB)
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = v_master_user) THEN
     EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', v_master_user, v_master_pass);
