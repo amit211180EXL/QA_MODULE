@@ -216,6 +216,35 @@ module.exports = {
           '0%, 100%': { opacity: '0.5' },
           '50%': { opacity: '1' },
         },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        float1: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(24px, 18px) scale(1.06)' },
+        },
+        float2: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '50%': { transform: 'translate(-20px, -14px) scale(1.08)' },
+        },
+        float3: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)', opacity: '0.15' },
+          '50%': { transform: 'translate(30px, -20px) scale(1.1)', opacity: '0.25' },
+        },
+        'pulse-glow': {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.7' },
+        },
+        'grid-drift': {
+          '0%': { transform: 'translate(0, 0)' },
+          '100%': { transform: 'translate(60px, 60px)' },
+        },
+        rise: {
+          '0%': { transform: 'translateY(0) scale(1)', opacity: '0.3' },
+          '50%': { opacity: '0.6' },
+          '100%': { transform: 'translateY(-100vh) scale(0.5)', opacity: '0' },
+        },
       },
 
       animation: {
@@ -224,6 +253,13 @@ module.exports = {
         'float-slow': 'float-slow 14s ease-in-out infinite',
         'gradient-shift': 'gradient-shift 10s ease infinite',
         'border-glow': 'border-glow 4s ease-in-out infinite',
+        fadeIn: 'fadeIn 0.4s ease-out both',
+        float1: 'float1 14s ease-in-out infinite',
+        float2: 'float2 18s ease-in-out infinite 1s',
+        float3: 'float3 20s ease-in-out infinite 3s',
+        'pulse-glow': 'pulse-glow 6s ease-in-out infinite',
+        'grid-drift': 'grid-drift 30s linear infinite',
+        rise: 'rise 10s ease-in infinite',
       },
 
       backgroundSize: {

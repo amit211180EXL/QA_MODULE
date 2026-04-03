@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AxiosError } from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   evaluationsApi,
   FormQuestion,
@@ -18,9 +18,6 @@ import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { useAuth } from '@/context/auth-context';
 import { CheckCircle, XCircle, ArrowLeft, AlertTriangle } from 'lucide-react';
-import { Topbar } from '@/components/layout/topbar';
-import { PageHeader } from '@/components/layout/page-header';
-import { Badge } from '@/components/ui/badge';
 
 type SubmissionNotice = {
   variant: 'info' | 'success' | 'danger';
@@ -54,12 +51,7 @@ function normalizeAnswer(value: unknown, question: FormQuestion, scale: number):
     case 'multiselect':
       if (typeof value === 'number') {
         if (question.validation?.max !== undefined || question.validation?.min !== undefined) {
-          return scaleValue(
-            value,
-            question.validation?.min ?? 0,
-            question.validation?.max ?? scale,
-            scale,
-          );
+          return scaleValue(value, question.validation?.min ?? 0, question.validation?.max ?? scale, scale);
         }
         return value;
       }
@@ -67,12 +59,7 @@ function normalizeAnswer(value: unknown, question: FormQuestion, scale: number):
         const parsed = parseFloat(value);
         if (Number.isNaN(parsed)) return 0;
         if (question.validation?.max !== undefined || question.validation?.min !== undefined) {
-          return scaleValue(
-            parsed,
-            question.validation?.min ?? 0,
-            question.validation?.max ?? scale,
-            scale,
-          );
+          return scaleValue(parsed, question.validation?.min ?? 0, question.validation?.max ?? scale, scale);
         }
         return parsed;
       }
@@ -97,10 +84,7 @@ function computeScorePreview(
     const sectionQuestions = questions.filter((question) => question.sectionId === section.id);
     if (!sectionQuestions.length) continue;
 
-    const totalQuestionWeight = sectionQuestions.reduce(
-      (sum, question) => sum + question.weight,
-      0,
-    );
+    const totalQuestionWeight = sectionQuestions.reduce((sum, question) => sum + question.weight, 0);
     let sectionRaw = 0;
 
     for (const question of sectionQuestions) {
@@ -313,9 +297,7 @@ function QuestionInput({
       {/* Override reason — inline amber footer */}
       {changed && !readonly && onOverrideReasonChange && (
         <div className="flex items-center gap-2 border-t border-amber-100 bg-amber-50/60 px-4 py-2">
-          <span className="shrink-0 text-[11px] font-semibold text-amber-600">
-            Override reason:
-          </span>
+          <span className="shrink-0 text-[11px] font-semibold text-amber-600">Override reason:</span>
           <input
             type="text"
             placeholder="Required…"
@@ -344,32 +326,24 @@ function ScoreCard({
 }) {
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-sm backdrop-blur-sm transition ${
+      className={`rounded-2xl border p-4 shadow-sm transition ${
         active
-          ? 'border-primary-200 bg-gradient-to-br from-primary-50/90 to-white ring-1 ring-primary-200/80'
-          : 'border-slate-200/90 bg-white/90 hover:shadow-md'
+          ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white ring-1 ring-blue-200'
+          : 'border-slate-200 bg-white hover:shadow-md'
       }`}
     >
       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
       {score !== null ? (
         <>
-          <p
-            className={`mt-1 text-2xl font-black tabular-nums ${
-              passFail === true
-                ? 'text-emerald-600'
-                : passFail === false
-                  ? 'text-red-500'
-                  : 'text-slate-800'
-            }`}
-          >
+          <p className={`mt-1 text-2xl font-black tabular-nums ${
+            passFail === true ? 'text-emerald-600' : passFail === false ? 'text-red-500' : 'text-slate-800'
+          }`}>
             {score.toFixed(1)}%
           </p>
           {passFail !== undefined && passFail !== null && (
-            <p
-              className={`mt-0.5 text-xs font-semibold ${
-                passFail ? 'text-emerald-600' : 'text-red-500'
-              }`}
-            >
+            <p className={`mt-0.5 text-xs font-semibold ${
+              passFail ? 'text-emerald-600' : 'text-red-500'
+            }`}>
               {passFail ? '✓ Pass' : '✗ Fail'}
             </p>
           )}
@@ -385,10 +359,8 @@ function ScoreCard({
 
 export default function EvaluationReviewPage() {
   const { id } = useParams<{ id: string }>();
-  const pathname = usePathname();
   const router = useRouter();
   const { user } = useAuth();
-  const verifierContext = pathname?.startsWith('/verifier-queue') ?? false;
   const queryClient = useQueryClient();
   const [isResolvingLegacyId, setIsResolvingLegacyId] = useState(false);
 
@@ -454,7 +426,8 @@ export default function EvaluationReviewPage() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['evaluation', id] });
 
-  const showSubmitting = (message: string) => setSubmissionNotice({ variant: 'info', message });
+  const showSubmitting = (message: string) =>
+    setSubmissionNotice({ variant: 'info', message });
 
   const showSuccessAndRedirect = (message: string, target: string) => {
     setSubmissionNotice({ variant: 'success', message });
@@ -483,10 +456,7 @@ export default function EvaluationReviewPage() {
     onMutate: () => showSubmitting('Submitting QA review...'),
     onSuccess: () => {
       invalidate();
-      showSuccessAndRedirect(
-        'QA review submitted successfully. Sending item to the next queue...',
-        '/qa-queue',
-      );
+      showSuccessAndRedirect('QA review submitted successfully. Sending item to the next queue...', '/qa-queue');
     },
     onError: (error) => showError(error, 'Failed to submit QA review. Please try again.'),
   });
@@ -516,13 +486,9 @@ export default function EvaluationReviewPage() {
     onMutate: () => showSubmitting('Submitting verifier changes...'),
     onSuccess: () => {
       invalidate();
-      showSuccessAndRedirect(
-        'Verifier changes saved and approved successfully.',
-        '/verifier-queue',
-      );
+      showSuccessAndRedirect('Verifier changes saved and approved successfully.', '/verifier-queue');
     },
-    onError: (error) =>
-      showError(error, 'Failed to modify and approve evaluation. Please try again.'),
+    onError: (error) => showError(error, 'Failed to modify and approve evaluation. Please try again.'),
   });
   const verifierRejectMutation = useMutation({
     mutationFn: () => evaluationsApi.verifierReject(id, verifierRejectReason),
@@ -534,17 +500,8 @@ export default function EvaluationReviewPage() {
     onError: (error) => showError(error, 'Failed to reject evaluation. Please try again.'),
   });
 
-  if (isLoading) {
-    return (
-      <>
-        <Topbar title={verifierContext ? 'Verifier review' : 'QA review'} />
-        <div className="py-20 text-center text-sm text-slate-500">
-          <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-primary-500" />
-          Loading evaluation…
-        </div>
-      </>
-    );
-  }
+  if (isLoading)
+    return <div className="py-16 text-center text-sm text-gray-500">Loading evaluation…</div>;
   if (isError || !ev) {
     const axiosErr = error as AxiosError<{ error?: { message?: string } }> | null;
     const status = axiosErr?.response?.status;
@@ -559,22 +516,20 @@ export default function EvaluationReviewPage() {
             ? 'You do not have permission to view this evaluation.'
             : 'Please retry from the QA queue.');
     return (
-      <>
-        <Topbar title={verifierContext ? 'Verifier review' : 'QA review'} />
-        <div className="space-y-4">
-          <Alert variant="danger">
-            {isResolvingLegacyId ? 'Resolving old review link...' : 'Failed to load evaluation. '}
-            {!isResolvingLegacyId && detail}
-            {!isResolvingLegacyId && status ? ` (HTTP ${status})` : ''}
-          </Alert>
-          <Button
-            variant="secondary"
-            onClick={() => router.push(verifierContext ? '/verifier-queue' : '/qa-queue')}
-          >
-            {verifierContext ? 'Back to verifier queue' : 'Back to QA queue'}
+      <div className="p-6">
+        <Alert variant="danger">
+          {isResolvingLegacyId
+            ? 'Resolving old review link...'
+            : 'Failed to load evaluation. '}
+          {!isResolvingLegacyId && detail}
+          {!isResolvingLegacyId && status ? ` (HTTP ${status})` : ''}
+        </Alert>
+        <div className="mt-3">
+          <Button variant="secondary" onClick={() => router.push('/qa-queue')}>
+            Back to QA Queue
           </Button>
         </div>
-      </>
+      </div>
     );
   }
 
@@ -636,339 +591,312 @@ export default function EvaluationReviewPage() {
   const finalDisplayPassFail = derivePassFail(ev.finalScore, passMark, ev.passFail);
 
   return (
-    <>
-      <Topbar title={verifierContext ? 'Verifier review' : 'QA review'} />
-      <div className="mx-auto max-w-[1440px] space-y-6">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="surface-glass inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-primary-200/60"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Back
-        </button>
+    <div className="mx-auto max-w-[1440px] p-4 md:p-6">
+      {/* Header */}
+      <button
+        onClick={() => router.back()}
+        className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" /> Back
+      </button>
 
-        <PageHeader
-          eyebrow={verifierContext ? 'Verifier review' : 'QA review'}
-          title={ev.formDefinition.name}
-          titleGradient
-          description={
-            <>
-              <span className="text-slate-500">v{ev.formDefinition.version}</span>
-              <span className="text-slate-400"> · </span>
-              <span className="font-mono text-sm text-slate-600">
-                {ev.conversation.externalId ?? ev.conversationId.slice(0, 8)}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
+        <div className="flex flex-wrap items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+          <div>
+            <h1 className="text-xl font-black tracking-tight text-slate-900 md:text-2xl">
+              {ev.formDefinition.name}{' '}
+              <span className="text-sm font-semibold text-slate-400">
+                v{ev.formDefinition.version}
               </span>
-              <span className="text-slate-400"> · </span>
-              <span>{ev.conversation.channel}</span>
-              <span className="text-slate-400"> · </span>
-              <span>{agentDisplay}</span>
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Conv: {ev.conversation.externalId ?? ev.conversationId.slice(0, 8)} ·{' '}
+              {ev.conversation.channel} · {agentDisplay}
               {hideAgent && (
-                <Badge variant="accent" size="sm" className="ml-2 align-middle">
-                  Blind
-                </Badge>
-              )}
-            </>
-          }
-          aside={
-            <div className="surface-glass rounded-full px-1 py-1">
-              <Badge variant={isLocked ? 'success' : 'warning'} size="md">
-                {ev.workflowState.replace(/_/g, ' ')}
-              </Badge>
-            </div>
-          }
-        />
-
-        {/* Rejection reason banner */}
-        {ev.verifierRejectReason && (
-          <Alert variant="warning" className="mb-4">
-            <strong>Rejected by verifier:</strong> {ev.verifierRejectReason}
-          </Alert>
-        )}
-
-        {submissionNotice && (
-          <Alert variant={submissionNotice.variant} className="mb-4">
-            {submissionNotice.message}
-          </Alert>
-        )}
-
-        {/* Score summary */}
-        <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
-          <ScoreCard label="AI Score" score={ev.aiScore} passFail={aiDisplayPassFail} />
-          {hideQAScore ? (
-            <div className="rounded-2xl border border-slate-200/90 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                QA Score
-              </p>
-              <p className="mt-1 text-xl font-bold text-slate-200">Hidden</p>
-              <p className="mt-0.5 text-xs text-slate-400">Blind review active</p>
-            </div>
-          ) : (
-            <ScoreCard
-              label="QA Score"
-              score={qaDisplayScore}
-              passFail={qaDisplayPassFail}
-              active={isQaMode}
-            />
-          )}
-          <ScoreCard
-            label="Final Score"
-            score={ev.finalScore}
-            passFail={finalDisplayPassFail}
-            active={isLocked}
-          />
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-          <div className="min-w-0 space-y-6">
-            {ev.workflowState === 'QA_PENDING' && (
-              <div className="rounded-2xl border border-primary-200/80 bg-gradient-to-r from-primary-50/95 to-accent-50/40 p-4 backdrop-blur-sm">
-                <Button
-                  isLoading={qaStartMutation.isPending}
-                  onClick={() => qaStartMutation.mutate()}
-                >
-                  Claim for QA Review
-                </Button>
-              </div>
-            )}
-            {(ev.workflowState === 'QA_COMPLETED' || ev.workflowState === 'VERIFIER_PENDING') && (
-              <div className="rounded-2xl border border-success-200/80 bg-gradient-to-r from-success-50/95 to-primary-50/30 p-4 backdrop-blur-sm">
-                <Button
-                  isLoading={verifierStartMutation.isPending}
-                  onClick={() => verifierStartMutation.mutate()}
-                >
-                  Claim for Verifier Review
-                </Button>
-              </div>
-            )}
-
-            <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md backdrop-blur-sm">
-              <div className="flex items-center justify-between gap-3 border-b border-slate-100/80 bg-gradient-to-r from-slate-50/90 to-white px-5 py-4">
-                <div>
-                  <h2 className="text-base font-bold text-slate-900">Evaluation Form</h2>
-                  <p className="text-xs text-slate-400">
-                    Review each section and submit your adjustments.
-                  </p>
-                </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                  {sections.length} section{sections.length === 1 ? '' : 's'}
+                <span className="ml-1.5 inline-flex items-center rounded-full bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-700">
+                  blind
                 </span>
-              </div>
+              )}
+            </p>
+          </div>
+          <span
+            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide ${
+              isLocked ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+            }`}
+          >
+            {ev.workflowState.replace(/_/g, ' ')}
+          </span>
+        </div>
+      </div>
 
-              <div className="space-y-5 p-4">
-                {sections.map((section: FormSection) => {
-                  const sectionScore = baseLayer?.sectionScores?.[section.id];
-                  const sqs = questions
-                    .filter((q: FormQuestion) => q.sectionId === section.id)
-                    .filter((q: FormQuestion) => isQuestionVisible(q, currentAnswersMap));
-                  if (!sqs.length) return null;
-                  return (
-                    <div
-                      key={section.id}
-                      className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 pb-4 pt-3"
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <h3 className="text-sm font-bold text-slate-800">{section.title}</h3>
-                        {typeof (sectionScore ?? scorePreview.sectionScores[section.id]) ===
-                          'number' && (
-                          <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
-                            {(sectionScore ?? scorePreview.sectionScores[section.id]).toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        {sqs.map((q: FormQuestion) => (
-                          <QuestionInput
-                            key={q.id}
-                            question={q}
-                            value={getAnswer(q.key)}
-                            aiValue={getAiAnswer(q.key)}
-                            overrideReason={overrideReasons[q.key]}
-                            onChange={(v) =>
-                              isEditable && setLocalAnswers((prev) => ({ ...prev, [q.key]: v }))
-                            }
-                            onOverrideReasonChange={(r) =>
-                              setOverrideReasons((prev) => ({ ...prev, [q.key]: r }))
-                            }
-                            readonly={!isEditable}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+      {/* Rejection reason banner */}
+      {ev.verifierRejectReason && (
+        <Alert variant="warning" className="mb-4">
+          <strong>Rejected by verifier:</strong> {ev.verifierRejectReason}
+        </Alert>
+      )}
+
+      {submissionNotice && (
+        <Alert variant={submissionNotice.variant} className="mb-4">
+          {submissionNotice.message}
+        </Alert>
+      )}
+
+      {/* Score summary */}
+      <div className="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <ScoreCard label="AI Score" score={ev.aiScore} passFail={aiDisplayPassFail} />
+        {hideQAScore ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">QA Score</p>
+            <p className="mt-1 text-xl font-bold text-slate-200">Hidden</p>
+            <p className="mt-0.5 text-xs text-slate-400">Blind review active</p>
+          </div>
+        ) : (
+          <ScoreCard
+            label="QA Score"
+            score={qaDisplayScore}
+            passFail={qaDisplayPassFail}
+            active={isQaMode}
+          />
+        )}
+        <ScoreCard
+          label="Final Score"
+          score={ev.finalScore}
+          passFail={finalDisplayPassFail}
+          active={isLocked}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="min-w-0 space-y-6">
+          {ev.workflowState === 'QA_PENDING' && (
+            <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
+              <Button isLoading={qaStartMutation.isPending} onClick={() => qaStartMutation.mutate()}>
+                Claim for QA Review
+              </Button>
+            </div>
+          )}
+          {(ev.workflowState === 'QA_COMPLETED' || ev.workflowState === 'VERIFIER_PENDING') && (
+            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+              <Button
+                isLoading={verifierStartMutation.isPending}
+                onClick={() => verifierStartMutation.mutate()}
+              >
+                Claim for Verifier Review
+              </Button>
+            </div>
+          )}
+
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Evaluation Form</h2>
+                <p className="text-xs text-slate-400">Review each section and submit your adjustments.</p>
               </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                {sections.length} section{sections.length === 1 ? '' : 's'}
+              </span>
             </div>
 
-            {isEditable && (
-              <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md backdrop-blur-sm">
-                <div className="border-b border-slate-100/80 bg-gradient-to-r from-slate-50/90 to-white px-4 py-3">
-                  <label className="text-sm font-semibold text-slate-700">
-                    Feedback (optional)
-                  </label>
-                </div>
-                <div className="p-4">
-                  <textarea
-                    rows={3}
-                    value={feedback}
-                    onChange={(e) => setFeedback(e.target.value)}
-                    placeholder="Add final reviewer notes, coaching points, or context here…"
-                    className="block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/30"
-                  />
-                </div>
-              </div>
-            )}
-
-            {canEditQA && (
-              <div className="flex justify-end gap-3 rounded-2xl border border-slate-200/90 bg-white/90 px-4 py-3 shadow-md backdrop-blur-sm">
-                <Button
-                  isLoading={qaSubmitMutation.isPending}
-                  onClick={() => qaSubmitMutation.mutate()}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Submit QA Review
-                </Button>
-              </div>
-            )}
-
-            {canEditVerifier && (
-              <div className="space-y-3 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md backdrop-blur-sm">
-                {showRejectInput ? (
-                  <div className="border-b border-red-100 bg-red-50 p-4 space-y-2">
-                    <textarea
-                      rows={2}
-                      value={verifierRejectReason}
-                      onChange={(e) => setVerifierRejectReason(e.target.value)}
-                      placeholder="Rejection reason (min 5 chars)"
-                      className="block w-full rounded-xl border border-red-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="danger"
-                        isLoading={verifierRejectMutation.isPending}
-                        disabled={verifierRejectReason.length < 5}
-                        onClick={() => verifierRejectMutation.mutate()}
-                      >
-                        Confirm Rejection
-                      </Button>
-                      <Button variant="secondary" onClick={() => setShowRejectInput(false)}>
-                        Cancel
-                      </Button>
+            <div className="space-y-5 p-4">
+              {sections.map((section: FormSection) => {
+                const sectionScore = baseLayer?.sectionScores?.[section.id];
+                const sqs = questions
+                  .filter((q: FormQuestion) => q.sectionId === section.id)
+                  .filter((q: FormQuestion) => isQuestionVisible(q, currentAnswersMap));
+                if (!sqs.length) return null;
+                return (
+                  <div key={section.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 pb-4 pt-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="text-sm font-bold text-slate-800">{section.title}</h3>
+                      {typeof (sectionScore ?? scorePreview.sectionScores[section.id]) === 'number' && (
+                        <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
+                          {(sectionScore ?? scorePreview.sectionScores[section.id]).toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      {sqs.map((q: FormQuestion) => (
+                        <QuestionInput
+                          key={q.id}
+                          question={q}
+                          value={getAnswer(q.key)}
+                          aiValue={getAiAnswer(q.key)}
+                          overrideReason={overrideReasons[q.key]}
+                          onChange={(v) =>
+                            isEditable && setLocalAnswers((prev) => ({ ...prev, [q.key]: v }))
+                          }
+                          onOverrideReasonChange={(r) =>
+                            setOverrideReasons((prev) => ({ ...prev, [q.key]: r }))
+                          }
+                          readonly={!isEditable}
+                        />
+                      ))}
                     </div>
                   </div>
-                ) : null}
-
-                <div className="flex flex-wrap justify-end gap-3 px-4 py-3">
-                  <Button variant="secondary" onClick={() => setShowRejectInput(true)}>
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Reject to QA
-                  </Button>
-                  {Object.keys(localAnswers).length > 0 ? (
-                    <Button
-                      isLoading={verifierModifyMutation.isPending}
-                      onClick={() => verifierModifyMutation.mutate()}
-                    >
-                      <AlertTriangle className="mr-2 h-4 w-4" />
-                      Modify &amp; Approve
-                    </Button>
-                  ) : (
-                    <Button
-                      isLoading={verifierApproveMutation.isPending}
-                      onClick={() => verifierApproveMutation.mutate()}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Approve
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
+                );
+              })}
+            </div>
           </div>
 
-          <aside className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <CallReviewPanel
-              channel={ev.conversation.channel}
-              content={ev.conversation.content}
-              metadata={ev.conversation.metadata}
-            />
-
-            {ev.deviationRecords.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-sm">
-                <div className="border-b border-orange-100 bg-orange-50 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-orange-900">Deviations</h3>
-                </div>
-                <div className="space-y-2 p-4">
-                  {ev.deviationRecords.map((d) => (
-                    <div
-                      key={d.id}
-                      className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50/50 px-4 py-2.5 text-sm"
-                    >
-                      <span className="font-medium text-orange-800">
-                        {d.type.replace(/_/g, ' ')}
-                      </span>
-                      <span className="font-mono text-xs text-orange-700">
-                        {d.scoreA.toFixed(1)} → {d.scoreB.toFixed(1)}{' '}
-                        <span className="font-bold">Δ{d.deviation.toFixed(1)}%</span>
-                      </span>
-                    </div>
-                  ))}
-                </div>
+          {isEditable && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3">
+                <label className="text-sm font-semibold text-slate-700">Feedback (optional)</label>
               </div>
-            )}
+              <div className="p-4">
+                <textarea
+                  rows={3}
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Add final reviewer notes, coaching points, or context here…"
+                  className="block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
 
-            {auditLog && auditLog.length > 0 && (
-              <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                <details className="group" open>
-                  <summary className="flex cursor-pointer list-none items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3 text-sm font-semibold text-slate-800">
-                    <span className="mr-1 text-slate-400 transition-transform group-open:rotate-90">
-                      ▶
+          {canEditQA && (
+            <div className="flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <Button isLoading={qaSubmitMutation.isPending} onClick={() => qaSubmitMutation.mutate()}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Submit QA Review
+              </Button>
+            </div>
+          )}
+
+          {canEditVerifier && (
+            <div className="space-y-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              {showRejectInput ? (
+                <div className="border-b border-red-100 bg-red-50 p-4 space-y-2">
+                  <textarea
+                    rows={2}
+                    value={verifierRejectReason}
+                    onChange={(e) => setVerifierRejectReason(e.target.value)}
+                    placeholder="Rejection reason (min 5 chars)"
+                    className="block w-full rounded-xl border border-red-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      variant="danger"
+                      isLoading={verifierRejectMutation.isPending}
+                      disabled={verifierRejectReason.length < 5}
+                      onClick={() => verifierRejectMutation.mutate()}
+                    >
+                      Confirm Rejection
+                    </Button>
+                    <Button variant="secondary" onClick={() => setShowRejectInput(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap justify-end gap-3 px-4 py-3">
+                <Button variant="secondary" onClick={() => setShowRejectInput(true)}>
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Reject to QA
+                </Button>
+                {Object.keys(localAnswers).length > 0 ? (
+                  <Button
+                    isLoading={verifierModifyMutation.isPending}
+                    onClick={() => verifierModifyMutation.mutate()}
+                  >
+                    <AlertTriangle className="mr-2 h-4 w-4" />
+                    Modify &amp; Approve
+                  </Button>
+                ) : (
+                  <Button
+                    isLoading={verifierApproveMutation.isPending}
+                    onClick={() => verifierApproveMutation.mutate()}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Approve
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <aside className="min-w-0 space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <CallReviewPanel
+            channel={ev.conversation.channel}
+            content={ev.conversation.content}
+            metadata={ev.conversation.metadata}
+          />
+
+          {ev.deviationRecords.length > 0 && (
+            <div className="overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-sm">
+              <div className="border-b border-orange-100 bg-orange-50 px-4 py-3">
+                <h3 className="text-sm font-semibold text-orange-900">Deviations</h3>
+              </div>
+              <div className="space-y-2 p-4">
+                {ev.deviationRecords.map((d) => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50/50 px-4 py-2.5 text-sm"
+                  >
+                    <span className="font-medium text-orange-800">{d.type.replace(/_/g, ' ')}</span>
+                    <span className="font-mono text-xs text-orange-700">
+                      {d.scoreA.toFixed(1)} → {d.scoreB.toFixed(1)}{' '}
+                      <span className="font-bold">Δ{d.deviation.toFixed(1)}%</span>
                     </span>
-                    Audit Trail
-                    <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                      {auditLog.length} event{auditLog.length !== 1 ? 's' : ''}
-                    </span>
-                  </summary>
-                  <div className="space-y-2 p-4">
-                    {auditLog.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-800">
-                            {entry.action.replace(/_/g, ' ')}
-                          </span>
-                          <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                              entry.actorRole === 'ADMIN'
-                                ? 'bg-fuchsia-100 text-fuchsia-700'
-                                : entry.actorRole === 'QA'
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : entry.actorRole === 'VERIFIER'
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {entry.actorRole}
-                          </span>
-                        </div>
-                        <div className="mt-1 text-[11px] text-slate-400">
-                          {new Date(entry.createdAt).toLocaleString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}{' '}
-                          · {entry.actorId.slice(0, 8)}
-                        </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {auditLog && auditLog.length > 0 && (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <details className="group" open>
+                <summary className="flex cursor-pointer list-none items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3 text-sm font-semibold text-slate-800">
+                  <span className="mr-1 text-slate-400 transition-transform group-open:rotate-90">▶</span>
+                  Audit Trail
+                  <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+                    {auditLog.length} event{auditLog.length !== 1 ? 's' : ''}
+                  </span>
+                </summary>
+                <div className="space-y-2 p-4">
+                  {auditLog.map((entry) => (
+                    <div key={entry.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-800">
+                          {entry.action.replace(/_/g, ' ')}
+                        </span>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                            entry.actorRole === 'ADMIN'
+                              ? 'bg-fuchsia-100 text-fuchsia-700'
+                              : entry.actorRole === 'QA'
+                                ? 'bg-blue-100 text-blue-700'
+                                : entry.actorRole === 'VERIFIER'
+                                  ? 'bg-emerald-100 text-emerald-700'
+                                  : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {entry.actorRole}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[11px] text-slate-400">
+                        {new Date(entry.createdAt).toLocaleString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        · {entry.actorId.slice(0, 8)}
+                      </div>
                         {entry.metadata != null && (
-                          <div className="mt-1.5 text-xs text-slate-500">
-                            {typeof entry.metadata === 'object'
+                        <div className="mt-1.5 text-xs text-slate-500">
+                          {typeof entry.metadata === 'object'
                               ? Object.entries(entry.metadata as Record<string, unknown>)
-                                  .map(([k, v]) => `${k}: ${String(v)}`)
+                                .map(([k, v]) => `${k}: ${String(v)}`)
                                   .join(', ')
-                              : String(entry.metadata as string | number | boolean)}
-                          </div>
-                        )}
+                            : String(entry.metadata as string | number | boolean)}
+                        </div>
+                      )}
                       </div>
                     ))}
                   </div>
@@ -978,6 +906,5 @@ export default function EvaluationReviewPage() {
           </aside>
         </div>
       </div>
-    </>
-  );
-}
+    );
+  }

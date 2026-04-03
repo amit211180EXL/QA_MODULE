@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Topbar } from '@/components/layout/topbar';
-import { PageHeader } from '@/components/layout/page-header';
 import { ArrowLeft } from 'lucide-react';
 
 const schema = z.object({
@@ -55,26 +54,22 @@ export default function NewFormPage() {
     <div className="max-w-3xl pb-2">
       <Topbar title="New QA Form" />
       <button
-        type="button"
         onClick={() => router.push('/forms')}
-        className="surface-glass mb-4 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 transition hover:text-primary-700"
+        className="mb-4 flex items-center gap-1 text-sm text-slate-500 hover:text-slate-800"
       >
-        <ArrowLeft className="h-4 w-4" aria-hidden /> All forms
+        <ArrowLeft className="h-4 w-4" /> All forms
       </button>
 
-      <PageHeader
-        eyebrow="Templates"
-        title="New QA form"
-        titleGradient
-        description="Create the shell first, then add sections and questions in the builder."
-        className="mb-4"
-      />
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
+        <div className="bg-gradient-to-r from-slate-50 to-white px-5 py-3">
+          <h1 className="text-xl font-bold text-slate-900">New QA form</h1>
+          <p className="mt-0.5 text-xs text-slate-500">Create the shell first, then add sections and questions in the builder.</p>
+        </div>
 
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md backdrop-blur-sm">
         <form
           onSubmit={handleSubmit((d) => createMutation.mutate(d))}
           noValidate
-          className="space-y-4 px-5 py-5"
+          className="space-y-4 px-5 py-4"
         >
           <Input
             label="Form key"
@@ -132,3 +127,5 @@ export default function NewFormPage() {
     </div>
   );
 }
+
+

@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Topbar } from '@/components/layout/topbar';
-import { PageHeader } from '@/components/layout/page-header';
 import {
   ArrowLeft,
   Plus,
@@ -225,189 +224,181 @@ function QuestionModal({
           </h3>
         </div>
         <div className="overflow-y-auto p-6">
-          <form onSubmit={handleSubmit(submit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label="Key (unique, no spaces)"
-                placeholder="solution_quality"
-                hint="Used as answer identifier"
-                error={errors.key?.message}
-                className="col-span-2"
-                {...register('key')}
-              />
-              <Input
-                label="Label"
-                placeholder="How well did the agent solve the issue?"
-                error={errors.label?.message}
-                className="col-span-2"
-                {...register('label')}
-              />
-            </div>
+        <form onSubmit={handleSubmit(submit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Key (unique, no spaces)"
+              placeholder="solution_quality"
+              hint="Used as answer identifier"
+              error={errors.key?.message}
+              className="col-span-2"
+              {...register('key')}
+            />
+            <Input
+              label="Label"
+              placeholder="How well did the agent solve the issue?"
+              error={errors.label?.message}
+              className="col-span-2"
+              {...register('label')}
+            />
+          </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-slate-700">Type</label>
-                <select
-                  {...register('type')}
-                  className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="rating">Rating</option>
-                  <option value="boolean">Boolean (Yes/No)</option>
-                  <option value="text">Text</option>
-                  <option value="select">Select</option>
-                </select>
-              </div>
-              <Input
-                label="Weight"
-                type="number"
-                step="0.1"
-                placeholder="1"
-                error={errors.weight?.message}
-                {...register('weight')}
-              />
-              <div className="flex items-end pb-0.5">
-                <label className="flex items-center gap-2 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 accent-blue-600"
-                    {...register('required')}
-                  />
-                  Required
-                </label>
-              </div>
-            </div>
-
-            {type === 'rating' && (
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  label="Min value"
-                  type="number"
-                  step="1"
-                  defaultValue={0}
-                  {...register('validationMin')}
-                />
-                <Input
-                  label="Max value"
-                  type="number"
-                  step="1"
-                  defaultValue={5}
-                  {...register('validationMax')}
-                />
-              </div>
-            )}
-
+          <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">
-                Rubric / Goal description
-              </label>
-              <textarea
-                {...register('rubricGoal')}
-                rows={2}
-                placeholder="Evaluator should assess whether the agent fully resolved the customer's issue."
-                className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">Type</label>
+              <select
+                {...register('type')}
+                className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="rating">Rating</option>
+                <option value="boolean">Boolean (Yes/No)</option>
+                <option value="text">Text</option>
+                <option value="select">Select</option>
+              </select>
             </div>
-
-            {type === 'rating' && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Rating anchors (one per line:{' '}
-                  <code className="rounded bg-slate-100 px-1 text-xs">value:label</code>)
-                </label>
-                <textarea
-                  {...register('anchorsRaw')}
-                  rows={4}
-                  placeholder={'0:Unacceptable\n1:Poor\n2:Fair\n3:Good\n4:Great\n5:Excellent'}
-                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            {type === 'select' && (
-              <div>
-                <label className="mb-1 block text-sm font-medium text-slate-700">
-                  Options (one per line:{' '}
-                  <code className="rounded bg-slate-100 px-1 text-xs">value:label</code>)
-                </label>
-                <textarea
-                  {...register('optionsRaw')}
-                  rows={4}
-                  placeholder={'yes:Yes\nno:No\nna:N/A'}
-                  className="block w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            {/* Conditional logic */}
-            <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-              <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+            <Input
+              label="Weight"
+              type="number"
+              step="0.1"
+              placeholder="1"
+              error={errors.weight?.message}
+              {...register('weight')}
+            />
+            <div className="flex items-end pb-0.5">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
                 <input
                   type="checkbox"
-                  checked={condEnabled}
-                  onChange={(e) => setCondEnabled(e.target.checked)}
                   className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+                  {...register('required')}
                 />
-                Only show if another question has a specific answer
+                Required
               </label>
-              {condEnabled && (
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  <div>
-                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Question
-                    </label>
-                    <select
-                      value={condKey}
-                      onChange={(e) => setCondKey(e.target.value)}
-                      className="block w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="">Select…</option>
-                      {allQuestions
-                        .filter((q) => q.id !== initial?.id)
-                        .map((q) => (
-                          <option key={q.key} value={q.key}>
-                            {q.key}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Operator
-                    </label>
-                    <select
-                      value={condOp}
-                      onChange={(e) => setCondOp(e.target.value as 'eq' | 'neq' | 'gt' | 'lt')}
-                      className="block w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="eq">equals</option>
-                      <option value="neq">not equals</option>
-                      <option value="gt">greater than</option>
-                      <option value="lt">less than</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                      Value
-                    </label>
-                    <input
-                      type="text"
-                      value={condVal}
-                      onChange={(e) => setCondVal(e.target.value)}
-                      placeholder="e.g. 3 or true"
-                      className="block w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
+          </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit">{initial ? 'Save' : 'Add question'}</Button>
+          {type === 'rating' && (
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Min value"
+                type="number"
+                step="1"
+                defaultValue={0}
+                {...register('validationMin')}
+              />
+              <Input
+                label="Max value"
+                type="number"
+                step="1"
+                defaultValue={5}
+                {...register('validationMax')}
+              />
             </div>
-          </form>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+              Rubric / Goal description
+            </label>
+            <textarea
+              {...register('rubricGoal')}
+              rows={2}
+              placeholder="Evaluator should assess whether the agent fully resolved the customer's issue."
+              className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {type === 'rating' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Rating anchors (one per line: <code className="rounded bg-slate-100 px-1 text-xs">value:label</code>)
+              </label>
+              <textarea
+                {...register('anchorsRaw')}
+                rows={4}
+                placeholder={'0:Unacceptable\n1:Poor\n2:Fair\n3:Good\n4:Great\n5:Excellent'}
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
+          {type === 'select' && (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Options (one per line: <code className="rounded bg-slate-100 px-1 text-xs">value:label</code>)
+              </label>
+              <textarea
+                {...register('optionsRaw')}
+                rows={4}
+                placeholder={'yes:Yes\nno:No\nna:N/A'}
+                className="block w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          )}
+
+          {/* Conditional logic */}
+          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-slate-700">
+              <input
+                type="checkbox"
+                checked={condEnabled}
+                onChange={(e) => setCondEnabled(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+              />
+              Only show if another question has a specific answer
+            </label>
+            {condEnabled && (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Question</label>
+                  <select
+                    value={condKey}
+                    onChange={(e) => setCondKey(e.target.value)}
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select…</option>
+                    {allQuestions
+                      .filter((q) => q.id !== initial?.id)
+                      .map((q) => (
+                        <option key={q.key} value={q.key}>
+                          {q.key}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Operator</label>
+                  <select
+                    value={condOp}
+                    onChange={(e) => setCondOp(e.target.value as 'eq' | 'neq' | 'gt' | 'lt')}
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="eq">equals</option>
+                    <option value="neq">not equals</option>
+                    <option value="gt">greater than</option>
+                    <option value="lt">less than</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-400">Value</label>
+                  <input
+                    type="text"
+                    value={condVal}
+                    onChange={(e) => setCondVal(e.target.value)}
+                    placeholder="e.g. 3 or true"
+                    className="block w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">{initial ? 'Save' : 'Add question'}</Button>
+          </div>
+        </form>
         </div>
       </div>
     </div>
@@ -444,17 +435,11 @@ function QuestionRow({
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-slate-800">{question.label}</p>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">
-            {question.key}
-          </span>
-          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-600">
-            {TYPE_LABELS[question.type] ?? question.type}
-          </span>
+          <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-500">{question.key}</span>
+          <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[11px] font-semibold text-blue-600">{TYPE_LABELS[question.type] ?? question.type}</span>
           <span className="text-[11px] text-slate-400">×{question.weight}</span>
           {question.required && (
-            <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-500">
-              required
-            </span>
+            <span className="rounded bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-500">required</span>
           )}
           {question.conditionalLogic && (
             <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[11px] font-semibold text-indigo-500">
@@ -486,18 +471,10 @@ function QuestionRow({
             >
               ↓
             </button>
-            <button
-              type="button"
-              onClick={onEdit}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            >
+            <button type="button" onClick={onEdit} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
               <Pencil className="h-3.5 w-3.5" />
             </button>
-            <button
-              type="button"
-              onClick={onDelete}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500"
-            >
+            <button type="button" onClick={onDelete} className="rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-500">
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           </>
@@ -974,83 +951,87 @@ export default function FormBuilderPage() {
   return (
     <div className="max-w-3xl pb-4 pt-1">
       <Topbar title="Form Builder" />
+      {/* Header */}
       <button
-        type="button"
         onClick={() => router.push('/forms')}
-        className="surface-glass mb-3 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 transition hover:text-primary-700"
+        className="mb-3 flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-800"
       >
-        <ArrowLeft className="h-4 w-4" aria-hidden /> All forms
+        <ArrowLeft className="h-4 w-4" /> All forms
       </button>
 
-      <PageHeader
-        eyebrow="Form builder"
-        title={form.name}
-        titleGradient
-        description={
-          <>
-            <code className="rounded-md bg-slate-100/90 px-2 py-0.5 font-mono text-sm text-slate-600">
-              {form.formKey}
-            </code>
-            <span className="ml-2 text-slate-400">v{form.version}</span>
-          </>
-        }
-        aside={
-          <div className="flex flex-wrap items-center justify-end gap-2">
+      {/* Page header card */}
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
+        <div className="flex items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+          <div>
+            <h1 className="text-lg font-bold text-slate-900">
+              {form.name}
+              <span className="ml-2 rounded-md bg-slate-100 px-2 py-0.5 text-sm font-semibold text-slate-400">
+                v{form.version}
+              </span>
+            </h1>
+            <p className="mt-0.5 font-mono text-xs text-slate-400">{form.formKey}</p>
+          </div>
+          <div className="flex items-center gap-2">
             <span
               className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                 form.status === 'PUBLISHED'
-                  ? 'bg-success-50 text-success-700 ring-1 ring-success-200/60'
+                  ? 'bg-emerald-100 text-emerald-700'
                   : form.status === 'DRAFT'
-                    ? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200/80'
-                    : 'bg-warning-50 text-warning-800 ring-1 ring-warning-200/60'
+                    ? 'bg-slate-100 text-slate-600'
+                    : 'bg-orange-100 text-orange-700'
               }`}
             >
               {form.status}
             </span>
-            {form.status === 'PUBLISHED' && (
+
+          {/* PUBLISHED: Unpublish to enable editing */}
+          {form.status === 'PUBLISHED' && (
+            <Button
+              size="sm"
+              variant="secondary"
+              isLoading={unpublishMutation.isPending}
+              onClick={() => unpublishMutation.mutate()}
+            >
+              Unpublish
+            </Button>
+          )}
+
+          {/* DRAFT (after unpublish): Save opens choice dialog */}
+          {isDraft && wasUnpublished && (
+            <Button size="sm" onClick={() => setSaveChoiceOpen(true)} disabled={!isDirty}>
+              <Save className="mr-1 h-4 w-4" />
+              Save changes
+            </Button>
+          )}
+
+          {/* DRAFT (fresh new form): normal Save + Publish */}
+          {isDraft && !wasUnpublished && (
+            <>
               <Button
                 size="sm"
                 variant="secondary"
-                isLoading={unpublishMutation.isPending}
-                onClick={() => unpublishMutation.mutate()}
+                isLoading={statusMutation.isPending}
+                onClick={() => statusMutation.mutate('publish')}
+                disabled={isDirty}
+                title={isDirty ? 'Save changes first' : 'Publish this form'}
               >
-                Unpublish
+                <CheckCircle2 className="mr-1 h-4 w-4" />
+                Publish
               </Button>
-            )}
-            {isDraft && wasUnpublished && (
-              <Button size="sm" onClick={() => setSaveChoiceOpen(true)} disabled={!isDirty}>
+              <Button
+                size="sm"
+                isLoading={saveMutation.isPending}
+                onClick={() => saveMutation.mutate()}
+                disabled={!isDirty}
+              >
                 <Save className="mr-1 h-4 w-4" />
-                Save changes
+                Save
               </Button>
-            )}
-            {isDraft && !wasUnpublished && (
-              <>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  isLoading={statusMutation.isPending}
-                  onClick={() => statusMutation.mutate('publish')}
-                  disabled={isDirty}
-                  title={isDirty ? 'Save changes first' : 'Publish this form'}
-                >
-                  <CheckCircle2 className="mr-1 h-4 w-4" />
-                  Publish
-                </Button>
-                <Button
-                  size="sm"
-                  isLoading={saveMutation.isPending}
-                  onClick={() => saveMutation.mutate()}
-                  disabled={!isDirty}
-                >
-                  <Save className="mr-1 h-4 w-4" />
-                  Save
-                </Button>
-              </>
-            )}
+            </>
+          )}
           </div>
-        }
-        className="mb-4"
-      />
+        </div>
+      </div>
 
       {form.status === 'PUBLISHED' && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">

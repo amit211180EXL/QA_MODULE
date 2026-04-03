@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,7 +10,7 @@ import { useAuth } from '@/context/auth-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
-import { ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -47,84 +47,86 @@ function LoginPageContent() {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-2xl">
-      <div className="pointer-events-none absolute -left-14 -top-14 h-36 w-36 rounded-full bg-primary-200/60 blur-2xl animate-pulse" />
-      <div className="pointer-events-none absolute -bottom-16 -right-12 h-40 w-40 rounded-full bg-accent-200/60 blur-2xl animate-pulse" />
-
-      <div className="relative">
-        <div className="mb-6">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-2xs font-semibold uppercase tracking-wide text-primary-700">
-            <Sparkles className="h-3.5 w-3.5" />
-            Secure Workspace Access
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-          <p className="mt-2 text-sm text-slate-600">
-            Sign in to continue your quality operations with confidence.
-          </p>
-        </div>
-
-        {serverError && (
-          <Alert variant="danger" className="mb-4">
-            {serverError}
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <Input
-            label="Email"
-            type="email"
-            autoComplete="email"
-            placeholder="admin@company.com"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            placeholder="••••••••••••"
-            error={errors.password?.message}
-            {...register('password')}
-          />
-          <Input
-            label="Workspace slug (optional)"
-            type="text"
-            placeholder="acme-corp"
-            hint="Required if you belong to multiple workspaces"
-            error={errors.tenantSlug?.message}
-            {...register('tenantSlug')}
-          />
-
-          <Button type="submit" className="group w-full" isLoading={isSubmitting}>
-            <span>Sign in</span>
-            {!isSubmitting && (
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            )}
-          </Button>
-        </form>
-
-        <div className="mt-6 flex items-center justify-between text-sm">
-          <Link
-            href="/forgot-password"
-            className="text-primary-600 transition-colors hover:text-primary-700 hover:underline"
-          >
-            Forgot password?
-          </Link>
-          <Link
-            href="/signup"
-            className="text-primary-600 transition-colors hover:text-primary-700 hover:underline"
-          >
-            Create account
-          </Link>
-        </div>
-
-        <div className="mt-6 rounded-xl border border-slate-200/80 bg-white/70 px-3 py-2 backdrop-blur-sm">
-          <div className="flex items-center gap-2 text-2xs font-semibold uppercase tracking-wide text-slate-600">
-            <ShieldCheck className="h-3.5 w-3.5 text-success-600" />
-            Encrypted Session · Role-Based Access · Tenant Isolation
-          </div>
-        </div>
+    <div className="animate-[fadeIn_0.4s_ease-out]">
+      {/* Header */}
+      <div className="mb-5">
+        <h1 className="bg-gradient-to-br from-slate-900 via-primary-700 to-accent-600 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+          Welcome back
+        </h1>
+        <p className="mt-1.5 text-sm text-slate-500">
+          Sign in to continue your quality operations.
+        </p>
       </div>
+
+      {/* Gradient accent line */}
+      <div className="mb-5 h-px w-full bg-gradient-to-r from-primary-400 via-accent-400 to-transparent" />
+
+      {serverError && (
+        <Alert variant="danger" className="mb-4">
+          {serverError}
+        </Alert>
+      )}
+
+      {/* Form */}
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="space-y-4 animate-[fadeIn_0.5s_ease-out_0.1s_both]"
+      >
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          placeholder="admin@company.com"
+          error={errors.email?.message}
+          {...register('email')}
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          placeholder="••••••••••••"
+          error={errors.password?.message}
+          {...register('password')}
+        />
+        <Input
+          label="Workspace slug (optional)"
+          type="text"
+          placeholder="acme-corp"
+          hint="Required if you belong to multiple workspaces"
+          error={errors.tenantSlug?.message}
+          {...register('tenantSlug')}
+        />
+
+        <Button
+          type="submit"
+          className="group w-full bg-gradient-to-r from-primary-600 to-accent-600 hover:from-primary-500 hover:to-accent-500"
+          isLoading={isSubmitting}
+        >
+          <span>Sign in</span>
+          {!isSubmitting && (
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          )}
+        </Button>
+      </form>
+
+      {/* Links */}
+      <div className="mt-5 flex items-center justify-between text-sm animate-[fadeIn_0.5s_ease-out_0.2s_both]">
+        <Link
+          href="/forgot-password"
+          className="text-primary-600 transition-colors hover:text-primary-700 hover:underline"
+        >
+          Forgot password?
+        </Link>
+        <Link
+          href="/signup"
+          className="text-primary-600 transition-colors hover:text-primary-700 hover:underline"
+        >
+          Create account
+        </Link>
+      </div>
+
+
     </div>
   );
 }
