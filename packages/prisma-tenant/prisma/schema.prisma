@@ -131,6 +131,7 @@ model Evaluation {
   conversation     Conversation     @relation(fields: [conversationId], references: [id])
   formDefinition   FormDefinition   @relation(fields: [formDefinitionId], references: [id])
   auditLogs        AuditLog[]
+  auditCase        AuditCase?
   deviationRecords DeviationRecord[]
   workflowQueue    WorkflowQueue?
 
@@ -181,6 +182,33 @@ model DeviationRecord {
 enum DeviationType {
   AI_VS_QA
   QA_VS_VERIFIER
+}
+
+// ─── AUDIT CASES ─────────────────────────────────────────────────────────────
+
+model AuditCase {
+  id           String          @id @default(cuid())
+  evaluationId String          @unique
+  status       AuditCaseStatus @default(OPEN)
+  deviation    Float
+  threshold    Float
+  reason       String
+  resolutionNote String?
+  resolvedBy   String?
+  resolvedAt   DateTime?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  evaluation Evaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@map("audit_cases")
+}
+
+enum AuditCaseStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
 }
 
 // ─── WORKFLOW QUEUE ───────────────────────────────────────────────────────────

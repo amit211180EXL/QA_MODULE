@@ -4,6 +4,11 @@ import * as bcrypt from 'bcrypt';
 async function seed() {
   const prisma = getMasterClient();
 
+  // Resolve tenant DB coordinates from env so this seed works both with Docker
+  // (TENANT_DB_PORT=5433) and without Docker (TENANT_DB_PORT=5432 or default).
+  const tenantDbHost = process.env.TENANT_DB_HOST ?? 'localhost';
+  const tenantDbPort = Number(process.env.TENANT_DB_PORT ?? '5432');
+
   // Dev tenant
   const tenant = await prisma.tenant.upsert({
     where: { slug: 'dev-tenant' },
@@ -12,13 +17,17 @@ async function seed() {
       name: 'Dev Tenant',
       plan: 'PRO',
       status: 'ACTIVE',
-      dbHost: 'localhost',
-      dbPort: 5433,
+      dbHost: tenantDbHost,
+      dbPort: tenantDbPort,
       dbName: 'qa_tenant_dev',
       dbUser: 'qa_tenant_dev',
       dbPasswordEnc: 'PLAINTEXT:devpassword', // placeholder — real encryption in provisioning worker
     },
-    update: {},
+    // Always keep host/port in sync with the current env so re-seeding fixes a wrong port.
+    update: {
+      dbHost: tenantDbHost,
+      dbPort: tenantDbPort,
+    },
   });
 
   const passwordHash = await bcrypt.hash('DevAdmin123!', 12);

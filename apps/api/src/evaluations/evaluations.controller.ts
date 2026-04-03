@@ -1,5 +1,18 @@
-import { Controller, Get, Post, Param, Body, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  Req,
+  HttpCode,
+  HttpStatus,
+  Res,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { Request, Response } from 'express';
 import { EvaluationsService } from './evaluations.service';
 import {
   ListEvaluationsDto,
@@ -11,6 +24,7 @@ import {
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload, UserRole } from '@qa/shared';
+import { buildResponse } from '../common/helpers/response.helper';
 
 @ApiTags('Evaluations')
 @ApiBearerAuth()
@@ -31,11 +45,13 @@ export class EvaluationsController {
     @CurrentUser() user: JwtPayload,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
     return this.evaluationsService.getQaQueue(
       user.tenantId,
       Number(page ?? 1),
       Number(limit ?? 20),
+      search,
     );
   }
 
@@ -46,11 +62,47 @@ export class EvaluationsController {
     @CurrentUser() user: JwtPayload,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('search') search?: string,
   ) {
     return this.evaluationsService.getVerifierQueue(
       user.tenantId,
       Number(page ?? 1),
       Number(limit ?? 20),
+      search,
+    );
+  }
+
+  @Get('queue/escalation')
+  @Roles(UserRole.VERIFIER, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Escalation queue — high-priority items requiring verifier attention' })
+  async escalationQueue(
+    @CurrentUser() user: JwtPayload,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.evaluationsService.getEscalationQueue(
+      user.tenantId,
+      Number(page ?? 1),
+      Number(limit ?? 20),
+      search,
+    );
+  }
+
+  @Get('queue/audit')
+  @Roles(UserRole.ADMIN, UserRole.VERIFIER)
+  @ApiOperation({ summary: 'Audit case queue — high deviation verifier cases' })
+  async auditQueue(
+    @CurrentUser() user: JwtPayload,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.evaluationsService.getAuditQueue(
+      user.tenantId,
+      Number(page ?? 1),
+      Number(limit ?? 20),
+      search,
     );
   }
 
@@ -62,10 +114,36 @@ export class EvaluationsController {
     return this.evaluationsService.previewScore(user.tenantId, dto.formId, dto.answers);
   }
 
+  @Get('audit/export')
+  @Roles(UserRole.ADMIN, UserRole.VERIFIER)
+  @ApiOperation({ summary: 'Export audit logs as CSV (tenant-scoped)' })
+  async exportAuditCsv(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string | undefined,
+    @Query('to') to: string | undefined,
+    @Query('evaluationId') evaluationId: string | undefined,
+    @Res() res: Response,
+  ) {
+    const csv = await this.evaluationsService.exportAuditLogCsv(
+      user.tenantId,
+      from ? new Date(from) : undefined,
+      to ? new Date(to) : undefined,
+      evaluationId,
+    );
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `audit-log-${timestamp}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(csv);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get single evaluation with full layered data' })
-  async getOne(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
-    return this.evaluationsService.getEvaluation(user.tenantId, id);
+  async getOne(@CurrentUser() user: JwtPayload, @Param('id') id: string, @Req() req: Request) {
+    const result = await this.evaluationsService.getEvaluation(user.tenantId, id, user.role);
+    return buildResponse(result, (req as unknown as Record<string, string>)['requestId']);
   }
 
   @Get(':id/audit')
@@ -133,5 +211,32 @@ export class EvaluationsController {
     @Body() dto: VerifierRejectDto,
   ) {
     return this.evaluationsService.verifierReject(user.tenantId, id, user.sub, user.role, dto);
+  }
+
+  @Post(':id/retry-ai')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Retry AI processing for AI_FAILED evaluation' })
+  async retryAi(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.evaluationsService.retryAiFailed(user.tenantId, id, user.sub, user.role);
+  }
+
+  @Patch('audit-cases/:id/resolve')
+  @Roles(UserRole.ADMIN, UserRole.VERIFIER)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resolve or dismiss an audit case' })
+  async resolveAuditCase(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: { dismiss?: boolean; note?: string },
+  ) {
+    return this.evaluationsService.resolveAuditCase(
+      user.tenantId,
+      id,
+      user.sub,
+      user.role,
+      body.dismiss ?? false,
+      body.note,
+    );
   }
 }

@@ -1,20 +1,20 @@
 import { cn } from '@/lib/utils';
 
 interface AlertProps {
-  variant?: 'error' | 'success' | 'warning' | 'info';
+  variant?: 'danger' | 'success' | 'warning' | 'info';
   children: React.ReactNode;
   className?: string;
 }
 
-export function Alert({ variant = 'error', children, className }: AlertProps) {
+export function Alert({ variant = 'info', children, className }: AlertProps) {
   const styles = {
-    error: 'bg-red-50 border-red-200 text-red-800',
-    success: 'bg-green-50 border-green-200 text-green-800',
-    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800',
+    danger: 'bg-danger-50 border border-danger-200 text-danger-800',
+    success: 'bg-success-50 border border-success-200 text-success-800',
+    warning: 'bg-warning-50 border border-warning-200 text-warning-800',
+    info: 'bg-info-50 border border-info-200 text-info-800',
   };
   return (
-    <div className={cn('rounded-lg border px-4 py-3 text-sm', styles[variant], className)}>
+    <div className={cn('rounded-md px-4 py-3 text-sm font-medium', styles[variant], className)}>
       {children}
     </div>
   );

@@ -148,33 +148,58 @@ sequenceDiagram
     participant TDB as Tenant DB
     participant QA as QA Reviewer
     participant VER as Verifier
+    participant ANA as Reports and Analytics
+    participant LOOP as Continuous Learning Loop
 
     C->>API: POST /conversations (ingest)
     API->>TDB: store conversation (PENDING)
     API->>Q: enqueue eval:process job
 
     Q->>TDB: fetch tenant LLM config
-    Q->>TDB: fetch published form version
+    Q->>TDB: fetch tenant published QA form
     alt LLM enabled
         Q->>LLM: fill form (schema-validated prompt)
         LLM-->>Q: ai_response_data + confidence
-        Q->>TDB: store evaluation (AI_COMPLETED, aiResponseData immutable)
+        Q->>TDB: store evaluation
     else LLM disabled
-        Q->>TDB: store evaluation (QA_PENDING, skip AI)
+        Q->>TDB: skip AI and mark QA_PENDING
     end
 
-    Q->>TDB: enqueue QA_QUEUE entry
+    Q->>TDB: enqueue QA review queue entry
     QA->>API: GET /evaluations/queue/qa
-    QA->>API: POST /evaluations/:id/qa-submit (adjustments)
+    QA->>API: POST /evaluations/:id/qa-submit
     API->>TDB: store qa_adjusted_data, compute deviation
-    API->>TDB: route to VERIFIER_QUEUE (escalate if deviation > threshold)
+    API->>TDB: route to verifier queue (escalate if deviation > threshold)
 
     VER->>API: GET /evaluations/queue/verifier
     VER->>API: POST /evaluations/:id/verifier-approve OR verifier-modify
-    API->>TDB: store verifier_final_data → resolve final_response_data
-    API->>TDB: compute final_score, lock evaluation (LOCKED)
+    API->>TDB: store verifier_final_data and resolve final_response_data
+    API->>TDB: compute final_score and lock evaluation (LOCKED)
     API->>TDB: write audit log entry
+
+    API->>ANA: publish final score for reports and analytics
+    ANA->>LOOP: feed top overrides and deviation trends
+    LOOP->>TDB: update rubric and prompt tuning inputs
 ```
+
+### Canonical State Flow
+
+1. Conversation received.
+2. Fetch tenant LLM config.
+3. Fetch tenant published QA form.
+4. AI fills tenant form (or skip AI if disabled).
+5. Store evaluation.
+6. QA review queue.
+7. Verifier review.
+8. Final score locked.
+9. Reports and analytics.
+10. Continuous learning loop.
+
+### If LLM Is Disabled
+
+1. Skip AI stage.
+2. QA evaluates directly.
+3. Verifier flow remains unchanged.
 
 ---
 

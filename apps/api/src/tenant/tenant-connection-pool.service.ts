@@ -1,6 +1,7 @@
 import { Injectable, Inject, OnApplicationShutdown, Logger } from '@nestjs/common';
 import { createTenantClient, TenantPrismaClient } from '@qa/prisma-tenant';
 import { getMasterClient } from '@qa/prisma-master';
+import { getEnv } from '@qa/config';
 
 import { decrypt } from '../common/utils/encryption.util';
 import { PLAN_LIMITS, PlanType } from '@qa/shared';
@@ -19,6 +20,7 @@ interface PoolEntry {
 export class TenantConnectionPool implements OnApplicationShutdown {
   private readonly logger = new Logger(TenantConnectionPool.name);
   private readonly pools = new Map<string, PoolEntry>();
+  private readonly readPools = new Map<string, PoolEntry>();
   private readonly masterDb = getMasterClient();
 
   constructor(@Inject(REDIS_CLIENT) private readonly redis: Redis) {}
@@ -28,12 +30,13 @@ export class TenantConnectionPool implements OnApplicationShutdown {
     const existing = this.pools.get(tenantId);
     if (existing) {
       existing.lastUsed = Date.now();
-      await this.redis.set(
+      // Fire-and-forget — no need to block the request on a Redis touch.
+      this.redis.set(
         `${POOL_CACHE_PREFIX}${tenantId}`,
         Date.now().toString(),
         'EX',
         POOL_TTL_S,
-      );
+      ).catch(() => null);
       return existing.client;
     }
 
@@ -89,6 +92,72 @@ export class TenantConnectionPool implements OnApplicationShutdown {
     return client;
   }
 
+  async getReadClient(tenantId: string): Promise<TenantPrismaClient> {
+    const env = getEnv();
+    if (!env.TENANT_READ_DB_HOST) {
+      return this.getClient(tenantId);
+    }
+
+    const existing = this.readPools.get(tenantId);
+    if (existing) {
+      existing.lastUsed = Date.now();
+      this.redis.set(
+        `${POOL_CACHE_PREFIX}read:${tenantId}`,
+        Date.now().toString(),
+        'EX',
+        POOL_TTL_S,
+      ).catch(() => null);
+      return existing.client;
+    }
+
+    const tenant = await this.masterDb.tenant.findUnique({
+      where: { id: tenantId },
+      select: {
+        dbName: true,
+        dbUser: true,
+        dbPasswordEnc: true,
+        plan: true,
+        status: true,
+      },
+    });
+
+    if (!tenant || tenant.status !== 'ACTIVE') {
+      throw new Error(`Tenant ${tenantId} not found or not active`);
+    }
+
+    let dbPassword: string;
+    if (tenant.dbPasswordEnc.startsWith('PLAINTEXT:')) {
+      dbPassword = tenant.dbPasswordEnc.replace('PLAINTEXT:', '');
+    } else {
+      dbPassword = decrypt(tenant.dbPasswordEnc);
+    }
+
+    const poolSize = PLAN_LIMITS[tenant.plan as PlanType]?.dbPoolSize ?? 2;
+    const readDatabaseUrl = `postgresql://${tenant.dbUser}:${encodeURIComponent(dbPassword)}@${env.TENANT_READ_DB_HOST}:${env.TENANT_READ_DB_PORT}/${tenant.dbName}`;
+
+    const client = createTenantClient(
+      `${readDatabaseUrl}?connection_limit=${poolSize}&pool_timeout=10`,
+    );
+
+    try {
+      await client.$connect();
+      this.readPools.set(tenantId, { client, lastUsed: Date.now() });
+      await this.redis.set(
+        `${POOL_CACHE_PREFIX}read:${tenantId}`,
+        Date.now().toString(),
+        'EX',
+        POOL_TTL_S,
+      );
+      return client;
+    } catch (err) {
+      await client.$disconnect().catch(() => null);
+      this.logger.warn(
+        `Read replica unavailable for tenant ${tenantId}, falling back to primary: ${(err as Error).message}`,
+      );
+      return this.getClient(tenantId);
+    }
+  }
+
   async evictPool(tenantId: string): Promise<void> {
     const entry = this.pools.get(tenantId);
     if (entry) {
@@ -96,6 +165,14 @@ export class TenantConnectionPool implements OnApplicationShutdown {
       this.pools.delete(tenantId);
       await this.redis.del(`${POOL_CACHE_PREFIX}${tenantId}`);
       this.logger.log(`Evicted DB pool for tenant ${tenantId}`);
+    }
+
+    const readEntry = this.readPools.get(tenantId);
+    if (readEntry) {
+      await readEntry.client.$disconnect().catch(() => null);
+      this.readPools.delete(tenantId);
+      await this.redis.del(`${POOL_CACHE_PREFIX}read:${tenantId}`);
+      this.logger.log(`Evicted read DB pool for tenant ${tenantId}`);
     }
   }
 
@@ -112,7 +189,7 @@ export class TenantConnectionPool implements OnApplicationShutdown {
   }
 
   get activePoolCount(): number {
-    return this.pools.size;
+    return this.pools.size + this.readPools.size;
   }
 
   async onApplicationShutdown() {

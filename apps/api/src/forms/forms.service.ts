@@ -5,15 +5,20 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
+import { getMasterClient } from '@qa/prisma-master';
 import { TenantConnectionPool } from '../tenant/tenant-connection-pool.service';
+import { PLAN_LIMITS, PlanType } from '@qa/shared';
 import {
   CreateFormDefinitionDto,
+  ListFormsDto,
   UpdateFormDefinitionDto,
   FormStatusAction,
 } from './dto/forms.dto';
 
 @Injectable()
 export class FormsService {
+  private readonly masterDb = getMasterClient();
+
   constructor(
     @Inject(TenantConnectionPool)
     private readonly pool: TenantConnectionPool,
@@ -23,23 +28,47 @@ export class FormsService {
     return this.pool.getClient(tenantId);
   }
 
-  async listForms(tenantId: string) {
+  async listForms(tenantId: string, query: ListFormsDto) {
     const db = await this.getDb(tenantId);
-    return db.formDefinition.findMany({
-      where: { status: { not: 'ARCHIVED' } },
-      orderBy: [{ formKey: 'asc' }, { version: 'desc' }],
-      select: {
-        id: true,
-        formKey: true,
-        version: true,
-        name: true,
-        description: true,
-        status: true,
-        channels: true,
-        publishedAt: true,
-        createdAt: true,
-      },
-    });
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = {
+      status: query.status ?? { not: 'ARCHIVED' },
+    };
+
+    if (query.search?.trim()) {
+      const s = query.search.trim();
+      where.OR = [
+        { formKey: { contains: s, mode: 'insensitive' } },
+        { name: { contains: s, mode: 'insensitive' } },
+        { description: { contains: s, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await db.$transaction([
+      db.formDefinition.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: [{ formKey: 'asc' }, { version: 'desc' }],
+        select: {
+          id: true,
+          formKey: true,
+          version: true,
+          name: true,
+          description: true,
+          status: true,
+          channels: true,
+          publishedAt: true,
+          createdAt: true,
+        },
+      }),
+      db.formDefinition.count({ where }),
+    ]);
+
+    return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   async getForm(tenantId: string, id: string) {
@@ -51,6 +80,24 @@ export class FormsService {
 
   async createForm(tenantId: string, dto: CreateFormDefinitionDto, userId: string) {
     const db = await this.getDb(tenantId);
+
+    // Plan limit check — count non-archived forms
+    const tenant = await this.masterDb.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { plan: true },
+    });
+    const limits = PLAN_LIMITS[tenant.plan as PlanType];
+    if (limits && limits.forms !== 999_999) {
+      const formCount = await db.formDefinition.count({
+        where: { status: { not: 'ARCHIVED' } },
+      });
+      if (formCount >= limits.forms) {
+        throw new BadRequestException({
+          code: 'PLAN_LIMIT_EXCEEDED',
+          message: `Form limit of ${limits.forms} reached on ${tenant.plan} plan. Upgrade to create more forms.`,
+        });
+      }
+    }
 
     // Auto-increment version for this formKey
     const latest = await db.formDefinition.findFirst({
@@ -106,8 +153,12 @@ export class FormsService {
     const form = await db.formDefinition.findUnique({ where: { id } });
     if (!form) throw new NotFoundException({ code: 'FORM_NOT_FOUND', message: 'Form not found' });
 
-    const transitions: Record<string, { from: string[]; to: string; dateField?: string }> = {
+    const transitions: Record<
+      string,
+      { from: string[]; to: string; dateField?: string; clearField?: string }
+    > = {
       publish: { from: ['DRAFT'], to: 'PUBLISHED', dateField: 'publishedAt' },
+      unpublish: { from: ['PUBLISHED'], to: 'DRAFT', clearField: 'publishedAt' },
       deprecate: { from: ['PUBLISHED'], to: 'DEPRECATED', dateField: 'deprecatedAt' },
       archive: { from: ['DRAFT', 'DEPRECATED'], to: 'ARCHIVED', dateField: 'archivedAt' },
     };
@@ -120,11 +171,45 @@ export class FormsService {
       });
     }
 
+    // Enforce one published form per channel.
+    if (action === FormStatusAction.PUBLISH) {
+      const formChannels = Array.isArray(form.channels)
+        ? form.channels.filter((ch): ch is string => typeof ch === 'string')
+        : [];
+
+      const publishedForms = await db.formDefinition.findMany({
+        where: {
+          status: 'PUBLISHED',
+          id: { not: form.id },
+        },
+        select: { id: true, formKey: true, version: true, channels: true },
+      });
+
+      const conflicting = publishedForms.find((published) => {
+        const publishedChannels = Array.isArray(published.channels)
+          ? published.channels.filter((ch): ch is string => typeof ch === 'string')
+          : [];
+        return publishedChannels.some((ch) => formChannels.includes(ch));
+      });
+
+      if (conflicting) {
+        const conflictingChannels = Array.isArray(conflicting.channels)
+          ? conflicting.channels.filter((ch): ch is string => typeof ch === 'string')
+          : [];
+        const overlap = conflictingChannels.filter((ch) => formChannels.includes(ch));
+        throw new ConflictException({
+          code: 'PUBLISHED_FORM_ALREADY_EXISTS_FOR_CHANNEL',
+          message: `Cannot publish form version ${form.version}. Another form (${conflicting.formKey} v${conflicting.version}) is already published for channel(s): ${overlap.join(', ')}.`,
+        });
+      }
+    }
+
     return db.formDefinition.update({
       where: { id },
       data: {
         status: transition.to as never,
         ...(transition.dateField ? { [transition.dateField]: new Date() } : {}),
+        ...(transition.clearField ? { [transition.clearField]: null } : {}),
       },
     });
   }

@@ -109,10 +109,10 @@ async function provisionTenant(tenant, adminUserId) {
 
   // 3. Run Prisma migrations on tenant DB
   const tenantDbUrl = `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${TENANT_DB_HOST}:${TENANT_DB_PORT}/${dbName}`;
-  console.log('  Pushing Prisma schema...');
+  console.log('  Applying Prisma migrations...');
   const prismaBin = resolve(ROOT, 'packages/prisma-tenant/node_modules/.bin/prisma.cmd');
   execSync(
-    `"${prismaBin}" db push --schema="${TENANT_MIGRATIONS_PATH}/schema.prisma" --skip-generate --accept-data-loss`,
+    `"${prismaBin}" migrate deploy --schema="${TENANT_MIGRATIONS_PATH}/schema.prisma"`,
     {
       cwd: resolve(ROOT, 'packages/prisma-tenant'),
       env: { ...process.env, TENANT_DATABASE_URL: tenantDbUrl },
@@ -120,7 +120,7 @@ async function provisionTenant(tenant, adminUserId) {
       shell: true,
     }
   );
-  console.log('  [OK] Schema pushed');
+  console.log('  [OK] Migrations applied');
 
   // 4. Seed starter form
   const tenantDb = new TenantPrismaClient({ datasources: { db: { url: tenantDbUrl } } });

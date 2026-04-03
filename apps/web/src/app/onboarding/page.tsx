@@ -13,7 +13,7 @@ import { Alert } from '@/components/ui/alert';
 import { CheckCircle } from 'lucide-react';
 import { UserRole } from '@qa/shared';
 
-const STEPS = ['LLM Config', 'Invite Team', 'Done'] as const;
+const STEPS = ['LLM Config', 'Add Team', 'Done'] as const;
 type Step = 0 | 1 | 2;
 
 // ─── Step 1: LLM config ───────────────────────────────────────────────────────
@@ -115,12 +115,12 @@ function LlmStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void })
           </Button>
           {testResult === 'ok' && <Alert variant="success">Connection successful</Alert>}
           {testResult === 'fail' && (
-            <Alert variant="error">Connection failed — check your credentials</Alert>
+            <Alert variant="danger">Connection failed — check your credentials</Alert>
           )}
         </>
       )}
 
-      {saveMutation.isError && <Alert variant="error">Failed to save. Please try again.</Alert>}
+      {saveMutation.isError && <Alert variant="danger">Failed to save. Please try again.</Alert>}
 
       <div className="flex items-center justify-between pt-2">
         <button type="button" onClick={onSkip} className="text-sm text-gray-500 hover:underline">
@@ -157,7 +157,7 @@ function InviteStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
   });
 
   const inviteMutation = useMutation({
-    mutationFn: (data: InviteFormValues) => usersApi.invite(data),
+    mutationFn: (data: InviteFormValues) => usersApi.create(data),
     onSuccess: (_data, vars) => {
       setInvited((prev) => [...prev, vars.email]);
       reset();
@@ -168,7 +168,7 @@ function InviteStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
     <div className="space-y-4">
       {invited.length > 0 && (
         <div className="rounded-lg bg-green-50 border border-green-200 p-3">
-          <p className="text-sm font-medium text-green-800">Invited:</p>
+          <p className="text-sm font-medium text-green-800">Created:</p>
           <ul className="mt-1 list-inside list-disc text-sm text-green-700">
             {invited.map((e) => (
               <li key={e}>{e}</li>
@@ -206,13 +206,13 @@ function InviteStep({ onNext, onSkip }: { onNext: () => void; onSkip: () => void
             <option value={UserRole.ADMIN}>Admin</option>
           </select>
         </div>
-        {inviteMutation.isError && <Alert variant="error">Failed to send invite.</Alert>}
+        {inviteMutation.isError && <Alert variant="danger">Failed to create user.</Alert>}
         <Button
           type="submit"
           variant="secondary"
           isLoading={isSubmitting || inviteMutation.isPending}
         >
-          Send invite
+          Create user
         </Button>
       </form>
 
@@ -284,7 +284,7 @@ export default function OnboardingPage() {
           <h2 className="mb-1 text-xl font-bold text-gray-900">{STEPS[step]}</h2>
           <p className="mb-6 text-sm text-gray-500">
             {step === 0 && 'Connect your LLM to enable AI-powered evaluations.'}
-            {step === 1 && 'Invite your QA team members.'}
+            {step === 1 && 'Create your QA team members and share their credentials.'}
             {step === 2 && 'Your platform is ready.'}
           </p>
 

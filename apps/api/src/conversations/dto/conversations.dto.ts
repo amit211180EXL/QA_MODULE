@@ -22,6 +22,11 @@ export class ListConversationsDto {
   @IsString()
   agentId?: string;
 
+  @ApiPropertyOptional({ description: 'Search by external ID, channel, agent name, or customer reference' })
+  @IsOptional()
+  @IsString()
+  search?: string;
+
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
   @Type(() => Number)

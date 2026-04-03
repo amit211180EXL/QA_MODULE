@@ -10,6 +10,8 @@ import { formsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
+import { Topbar } from '@/components/layout/topbar';
+import { PageHeader } from '@/components/layout/page-header';
 import { ArrowLeft } from 'lucide-react';
 
 const schema = z.object({
@@ -50,21 +52,29 @@ export default function NewFormPage() {
     setChannels((prev) => (prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]));
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="max-w-3xl pb-2">
+      <Topbar title="New QA Form" />
       <button
+        type="button"
         onClick={() => router.push('/forms')}
-        className="mb-6 flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
+        className="surface-glass mb-4 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-semibold text-slate-600 transition hover:text-primary-700"
       >
-        <ArrowLeft className="h-4 w-4" /> All forms
+        <ArrowLeft className="h-4 w-4" aria-hidden /> All forms
       </button>
 
-      <h1 className="mb-6 text-xl font-bold text-gray-900">New QA form</h1>
+      <PageHeader
+        eyebrow="Templates"
+        title="New QA form"
+        titleGradient
+        description="Create the shell first, then add sections and questions in the builder."
+        className="mb-4"
+      />
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md backdrop-blur-sm">
         <form
           onSubmit={handleSubmit((d) => createMutation.mutate(d))}
           noValidate
-          className="space-y-4"
+          className="space-y-4 px-5 py-5"
         >
           <Input
             label="Form key"
@@ -86,7 +96,7 @@ export default function NewFormPage() {
           />
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Channels</label>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700">Channels</label>
             <div className="flex flex-wrap gap-2">
               {['CHAT', 'EMAIL', 'CALL', 'SOCIAL'].map((ch) => (
                 <button
@@ -95,8 +105,8 @@ export default function NewFormPage() {
                   onClick={() => toggleChannel(ch)}
                   className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                     channels.includes(ch)
-                      ? 'border-primary-600 bg-primary-600 text-white'
-                      : 'border-gray-300 bg-white text-gray-600 hover:border-primary-300'
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-slate-300 bg-white text-slate-600 hover:border-blue-300'
                   }`}
                 >
                   {ch}
@@ -106,7 +116,7 @@ export default function NewFormPage() {
           </div>
 
           {createMutation.isError && (
-            <Alert variant="error">Failed to create form — please try again.</Alert>
+            <Alert variant="danger">Failed to create form — please try again.</Alert>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
@@ -122,3 +132,5 @@ export default function NewFormPage() {
     </div>
   );
 }
+
+

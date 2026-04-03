@@ -5,6 +5,7 @@ import {
   Patch,
   Delete,
   Body,
+  Query,
   Param,
   Req,
   HttpCode,
@@ -13,7 +14,7 @@ import {
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { UsersService } from './users.service';
-import { InviteUserDto, UpdateUserDto } from './dto/users.dto';
+import { CreateUserDto, InviteUserDto, ListUsersDto, UpdateUserDto } from './dto/users.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload, UserRole } from '@qa/shared';
@@ -28,16 +29,24 @@ export class UsersController {
   @Get()
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'List all users in tenant' })
-  async list(@CurrentUser() user: JwtPayload, @Req() req: Request) {
-    const result = await this.usersService.listUsers(user.tenantId);
+  async list(@CurrentUser() user: JwtPayload, @Query() query: ListUsersDto, @Req() req: Request) {
+    const result = await this.usersService.listUsers(user.tenantId, query);
+    return buildResponse(result, (req as unknown as Record<string, string>)['requestId']);
+  }
+
+  @Post()
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a new user and return credentials' })
+  async create(@CurrentUser() user: JwtPayload, @Body() dto: CreateUserDto, @Req() req: Request) {
+    const result = await this.usersService.createUser(user.tenantId, dto);
     return buildResponse(result, (req as unknown as Record<string, string>)['requestId']);
   }
 
   @Post('invite')
   @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: 'Invite a new user' })
+  @ApiOperation({ summary: 'Invite a user — creates INVITED user and returns one-time invite token' })
   async invite(@CurrentUser() user: JwtPayload, @Body() dto: InviteUserDto, @Req() req: Request) {
-    const result = await this.usersService.inviteUser(user.tenantId, dto, user);
+    const result = await this.usersService.inviteUser(user.tenantId, dto);
     return buildResponse(result, (req as unknown as Record<string, string>)['requestId']);
   }
 

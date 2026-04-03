@@ -14,9 +14,11 @@
     "db:studio": "prisma studio --schema=prisma/schema.prisma"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0"
+    "@prisma/client": "^5.14.0",
+    "bcrypt": "^5.1.1"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/node": "^20.14.0",
     "prisma": "^5.14.0",
     "ts-node": "^10.9.2",

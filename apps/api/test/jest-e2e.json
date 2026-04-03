@@ -5,9 +5,9 @@
   "testRegex": ".e2e-spec.ts$",
   "transform": { "^.+\\.(t|j)s$": "ts-jest" },
   "moduleNameMapper": {
-    "^@qa/shared(.*)$": "<rootDir>/../packages/shared/src$1",
-    "^@qa/config(.*)$": "<rootDir>/../packages/config/src$1",
-    "^@qa/prisma-master(.*)$": "<rootDir>/../packages/prisma-master/src$1",
-    "^@qa/prisma-tenant(.*)$": "<rootDir>/../packages/prisma-tenant/src$1"
+    "^@qa/shared(.*)$": "<rootDir>/../../../packages/shared/src$1",
+    "^@qa/config(.*)$": "<rootDir>/../../../packages/config/src$1",
+    "^@qa/prisma-master(.*)$": "<rootDir>/../../../packages/prisma-master/src$1",
+    "^@qa/prisma-tenant(.*)$": "<rootDir>/../../../packages/prisma-tenant/src$1"
   }
 }

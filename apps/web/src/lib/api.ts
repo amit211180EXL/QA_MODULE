@@ -60,13 +60,36 @@ export interface CurrentUser {
   lastLoginAt: string | null;
 }
 
+export interface CreateUserPayload {
+  email: string;
+  name: string;
+  role: string;
+  password?: string;
+}
+
+export interface CreateUserResult {
+  user: { id: string; email: string; name: string; role: string; status: string };
+  password: string;
+}
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const usersApi = {
-  list: () => api.get<{ data: CurrentUser[] }>('/users').then((r) => r.data.data),
+  list: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  }) => api.get<{ data: PaginatedResponse<CurrentUser> }>('/users', { params }).then((r) => r.data.data),
 
-  invite: (payload: { email: string; name: string; role: string }) =>
-    api.post('/users/invite', payload).then((r) => r.data),
+  create: (payload: CreateUserPayload) =>
+    api.post<{ data: CreateUserResult }>('/users', payload).then((r) => r.data.data),
 
   update: (id: string, payload: { name?: string; role?: string; status?: string }) =>
     api.patch(`/users/${id}`, payload).then((r) => r.data),
@@ -94,6 +117,9 @@ export interface ConversationListItem {
   receivedAt: string;
   evaluation: {
     workflowState: string;
+    aiScore: number | null;
+    qaScore: number | null;
+    verifierScore: number | null;
     finalScore: number | null;
     passFail: boolean | null;
   } | null;
@@ -104,14 +130,41 @@ export interface ConversationListResponse {
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
 
+export interface ConversationDetail extends ConversationListItem {
+  agentId: string | null;
+  content: unknown;
+  metadata: unknown | null;
+  createdAt: string;
+  evaluation: {
+    id: string;
+    workflowState: string;
+    aiScore: number | null;
+    qaScore: number | null;
+    verifierScore: number | null;
+    finalScore: number | null;
+    passFail: boolean | null;
+    confidenceScore: number | null;
+    isEscalated: boolean;
+    escalationReason: string | null;
+    feedback: string | null;
+    aiResponseData: unknown | null;
+    qaAdjustedData: unknown | null;
+    verifierFinalData: unknown | null;
+    finalResponseData: unknown | null;
+    aiCompletedAt: string | null;
+    qaCompletedAt: string | null;
+    verifierCompletedAt: string | null;
+  } | null;
+}
+
 export const conversationsApi = {
-  list: (params?: { status?: string; agentId?: string; page?: number; limit?: number }) =>
+  list: (params?: { status?: string; agentId?: string; search?: string; page?: number; limit?: number }) =>
     api
       .get<{ data: ConversationListResponse }>('/conversations', { params })
       .then((r) => r.data.data),
 
   get: (id: string) =>
-    api.get<{ data: ConversationListItem }>(`/conversations/${id}`).then((r) => r.data.data),
+    api.get<{ data: ConversationDetail }>(`/conversations/${id}`).then((r) => r.data.data),
 
   upload: (payload: {
     channel: string;
@@ -127,6 +180,13 @@ export const conversationsApi = {
   }) =>
     api
       .post<{ data: { uploaded: number } }>('/conversations/upload', payload)
+      .then((r) => r.data.data),
+
+  backfillPending: () =>
+    api
+      .post<{ data: { processed: number; skipped: number; reason: string[] } }>(
+        '/conversations/backfill-pending',
+      )
       .then((r) => r.data.data),
 };
 
@@ -163,6 +223,13 @@ export interface FormQuestionDef {
   rubric?: { goal: string; anchors?: Array<{ value: number; label: string }> };
   options?: Array<{ value: string; label: string }>;
   validation?: { min?: number; max?: number };
+  conditionalLogic?: {
+    showIf: {
+      questionKey: string;
+      operator: 'eq' | 'neq' | 'gt' | 'lt';
+      value: unknown;
+    };
+  };
 }
 
 export interface FormDetail extends FormListItem {
@@ -173,7 +240,8 @@ export interface FormDetail extends FormListItem {
 }
 
 export const formsApi = {
-  list: () => api.get<{ data: FormListItem[] }>('/forms').then((r) => r.data.data),
+  list: (params?: { page?: number; limit?: number; search?: string; status?: string }) =>
+    api.get<{ data: PaginatedResponse<FormListItem> }>('/forms', { params }).then((r) => r.data.data),
 
   get: (id: string) => api.get<{ data: FormDetail }>(`/forms/${id}`).then((r) => r.data.data),
 
@@ -183,6 +251,165 @@ export const formsApi = {
   update: (id: string, payload: Record<string, unknown>) =>
     api.patch<{ data: FormDetail }>(`/forms/${id}`, payload).then((r) => r.data.data),
 
-  changeStatus: (id: string, action: 'publish' | 'deprecate' | 'archive') =>
+  changeStatus: (id: string, action: 'publish' | 'unpublish' | 'deprecate' | 'archive') =>
     api.post<{ data: FormListItem }>(`/forms/${id}/status`, { action }).then((r) => r.data.data),
+};
+
+// ─── Tenant Settings ──────────────────────────────────────────────────────────
+
+export interface TenantSettings {
+  tenant: { id: string; name: string; slug: string; plan: string; status: string };
+  escalation: {
+    id: string;
+    qaDeviationThreshold: number;
+    verifierDeviationThreshold: number;
+    staleQueueHours: number;
+  } | null;
+  blindReview: {
+    hideAgentFromQA: boolean;
+    hideQAFromVerifier: boolean;
+  } | null;
+}
+
+export type SmtpEncryption = 'NONE' | 'TLS' | 'SSL';
+
+export interface TenantEmailSettings {
+  smtpHost: string;
+  smtpPort: number;
+  encryption: SmtpEncryption;
+  smtpUsername: string;
+  smtpPasswordConfigured: boolean;
+  fromEmail: string;
+  fromName: string;
+  notificationsEnabled: boolean;
+  forgotPasswordEnabled: boolean;
+}
+
+export interface UpdateTenantEmailSettingsPayload {
+  smtpHost: string;
+  smtpPort: number;
+  encryption: SmtpEncryption;
+  smtpUsername: string;
+  smtpPassword?: string;
+  fromEmail: string;
+  fromName: string;
+  notificationsEnabled: boolean;
+  forgotPasswordEnabled: boolean;
+}
+
+export const settingsApi = {
+  get: () => api.get<{ data: TenantSettings }>('/settings').then((r) => r.data.data),
+
+  getEmail: () =>
+    api.get<{ data: TenantEmailSettings }>('/settings/email').then((r) => r.data.data),
+
+  updateEscalation: (payload: {
+    qaDeviationThreshold?: number;
+    verifierDeviationThreshold?: number;
+    staleQueueHours?: number;
+  }) => api.patch('/settings/escalation', payload).then((r) => r.data),
+
+  updateBlindReview: (payload: { hideAgentFromQA?: boolean; hideQAFromVerifier?: boolean }) =>
+    api.patch('/settings/blind-review', payload).then((r) => r.data),
+
+  updateEmail: (payload: UpdateTenantEmailSettingsPayload) =>
+    api.patch<{ data: TenantEmailSettings }>('/settings/email', payload).then((r) => r.data.data),
+
+  sendTestEmail: (to: string) => api.post('/settings/email/test', { to }).then((r) => r.data),
+};
+
+// ─── Billing ──────────────────────────────────────────────────────────────────
+
+export interface BillingSubscription {
+  tenant: { id: string; name: string; plan: string; status: string };
+  subscription: {
+    id: string;
+    plan: string;
+    status: string;
+    currentPeriodStart: string;
+    currentPeriodEnd: string;
+    trialEndsAt: string | null;
+    cancelledAt: string | null;
+    createdAt: string;
+  } | null;
+  invoices: Array<{
+    id: string;
+    amount: number;
+    currency: string;
+    status: string;
+    paidAt: string | null;
+    dueAt: string;
+    createdAt: string;
+  }>;
+}
+
+export interface BillingUsage {
+  plan: string;
+  period: { start: string; end: string };
+  conversations: { used: number; limit: number };
+  users: { used: number; limit: number };
+  forms: { used: number; limit: number };
+  ai: { tokensUsed: number; costCents: number };
+}
+
+export interface CheckoutSessionResult {
+  id: string;
+  url: string | null;
+  plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
+}
+
+export interface ChangePlanResult {
+  plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
+  status: string;
+  prorationBehavior: 'create_prorations' | 'always_invoice' | 'none';
+  currentPeriodEnd: string;
+}
+
+export interface PortalSessionResult {
+  url: string;
+}
+
+export const billingApi = {
+  getSubscription: () =>
+    api.get<{ data: BillingSubscription }>('/billing').then((r) => r.data.data),
+  getUsage: () =>
+    api.get<{ data: BillingUsage }>('/billing/usage').then((r) => r.data.data),
+  createCheckoutSession: (payload: {
+    plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
+    successUrl: string;
+    cancelUrl: string;
+  }) =>
+    api
+      .post<{ data: CheckoutSessionResult }>('/billing/stripe/checkout', payload)
+      .then((r) => r.data.data),
+  changePlan: (payload: {
+    plan: 'BASIC' | 'PRO' | 'ENTERPRISE';
+    prorationBehavior: 'create_prorations' | 'always_invoice' | 'none';
+  }) =>
+    api
+      .post<{ data: ChangePlanResult }>('/billing/stripe/change-plan', payload)
+      .then((r) => r.data.data),
+  createPortalSession: (payload: { returnUrl: string }) =>
+    api
+      .post<{ data: PortalSessionResult }>('/billing/stripe/portal-session', payload)
+      .then((r) => r.data.data),
+  cancelSubscription: () =>
+    api.post<{ data: { status: string; cancelAtPeriodEnd: boolean } }>('/billing/stripe/cancel').then((r) => r.data.data),
+  resumeSubscription: () =>
+    api.post<{ data: { status: string; cancelAtPeriodEnd: boolean } }>('/billing/stripe/resume').then((r) => r.data.data),
+};
+
+// ─── Onboarding ───────────────────────────────────────────────────────────────
+
+export interface OnboardingStatus {
+  hasLlmConfig: boolean;
+  hasNonAdminUsers: boolean;
+  hasPublishedForm: boolean;
+  hasConversations: boolean;
+  isComplete: boolean;
+}
+
+export const onboardingApi = {
+  getStatus: () =>
+    api.get<OnboardingStatus>('/settings/onboarding-status').then((r) => r.data),
 };

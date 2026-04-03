@@ -4,48 +4,59 @@ import {
   NotFoundException,
   ConflictException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { getMasterClient } from '@qa/prisma-master';
+import { JwtPayload, UserRole, PLAN_LIMITS, PlanType } from '@qa/shared';
+import { JwtService } from '@nestjs/jwt';
 import { getEnv } from '@qa/config';
-import { JwtPayload, UserRole, NotifySendJobPayload, QUEUE_NAMES } from '@qa/shared';
-import { Queue } from 'bullmq';
-import { InviteUserDto, UpdateUserDto } from './dto/users.dto';
-import { REDIS_CLIENT } from '../redis/redis.module';
-import Redis from 'ioredis';
+import { CreateUserDto, InviteUserDto, ListUsersDto, UpdateUserDto } from './dto/users.dto';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UsersService {
   private readonly db = getMasterClient();
-  private readonly notifyQueue: Queue | null = null;
 
-  constructor(
-    private readonly jwtService: JwtService,
-    @Inject(REDIS_CLIENT) private readonly redis: Redis,
-  ) {
-    const env = getEnv();
-    if (env.REDIS_ENABLED !== 'false') {
-      this.notifyQueue = new Queue(QUEUE_NAMES.NOTIFY_SEND, {
-        connection: { host: env.REDIS_HOST, port: env.REDIS_PORT, password: env.REDIS_PASSWORD },
-      });
+  constructor(private readonly jwtService: JwtService) {}
+
+  async listUsers(tenantId: string, query: ListUsersDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 20;
+    const skip = (page - 1) * limit;
+
+    const where: Record<string, unknown> = { tenantId };
+    if (query.role) where.role = query.role;
+    if (query.status) where.status = query.status;
+
+    if (query.search?.trim()) {
+      const s = query.search.trim();
+      where.OR = [
+        { email: { contains: s, mode: 'insensitive' } },
+        { name: { contains: s, mode: 'insensitive' } },
+      ];
     }
-  }
 
-  async listUsers(tenantId: string) {
-    return this.db.user.findMany({
-      where: { tenantId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        status: true,
-        lastLoginAt: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'asc' },
-    });
+    const [items, total] = await this.db.$transaction([
+      this.db.user.findMany({
+        where,
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          status: true,
+          lastLoginAt: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.db.user.count({ where }),
+    ]);
+
+    return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 
   async getUser(tenantId: string, userId: string) {
@@ -65,7 +76,7 @@ export class UsersService {
     return user;
   }
 
-  async inviteUser(tenantId: string, dto: InviteUserDto, invitedBy: JwtPayload) {
+  async createUser(tenantId: string, dto: CreateUserDto) {
     // Check duplicate
     const existing = await this.db.user.findUnique({
       where: { tenantId_email: { tenantId, email: dto.email } },
@@ -77,54 +88,35 @@ export class UsersService {
       });
     }
 
-    const user = await this.db.user.create({
-      data: {
-        tenantId,
-        email: dto.email,
-        name: dto.name,
-        role: dto.role,
-        passwordHash: await bcrypt.hash(this.generateTempPassword(), 12),
-        status: 'INVITED',
-      },
+    // Plan limit check
+    const tenant = await this.db.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { plan: true },
     });
-
-    // Issue invite JWT (72h expiry)
-    const invitePayload: JwtPayload = {
-      sub: user.id,
-      tenantId,
-      role: user.role as UserRole,
-      type: 'invite',
-    };
-    const env = getEnv();
-    const inviteToken = this.jwtService.sign(invitePayload, {
-      secret: env.JWT_SECRET,
-      expiresIn: '72h',
-    });
-
-    // Enqueue notification
-    const notifyPayload: NotifySendJobPayload = {
-      tenantId,
-      type: 'user_invited',
-      recipientIds: [user.id],
-      data: {
-        inviteToken,
-        invitedByName: invitedBy.sub,
-        acceptUrl: `${env.API_URL}/accept-invite`,
-      },
-    };
-    if (this.notifyQueue) {
-      try {
-        await this.notifyQueue.add('notify', notifyPayload, { attempts: 3 });
-      } catch (e) {
-        console.warn('[Users] notify queue error:', (e as Error).message);
+    const limits = PLAN_LIMITS[tenant.plan as PlanType];
+    if (limits && limits.users !== 999_999) {
+      const currentCount = await this.db.user.count({
+        where: { tenantId, status: { not: 'INACTIVE' } },
+      });
+      if (currentCount >= limits.users) {
+        throw new BadRequestException({
+          code: 'PLAN_LIMIT_EXCEEDED',
+          message: `User limit of ${limits.users} reached on ${tenant.plan} plan. Upgrade to create more users.`,
+        });
       }
     }
 
-    if (env.NODE_ENV === 'development') {
-      console.log(`[DEV] Invite token for ${dto.email}: ${inviteToken}`);
-    }
+    // Use provided password or generate a strong one
+    const plainPassword = dto.password ?? this.generatePassword();
+    const passwordHash = await bcrypt.hash(plainPassword, 12);
 
-    return { user: { id: user.id, email: user.email, role: user.role, status: user.status } };
+    const user = await this.db.user.create({
+      data: { tenantId, email: dto.email, name: dto.name, role: dto.role, passwordHash, status: 'ACTIVE' },
+      select: { id: true, email: true, name: true, role: true, status: true, createdAt: true },
+    });
+
+    // Return plain password once so admin can share credentials
+    return { user, password: plainPassword };
   }
 
   async updateUser(tenantId: string, userId: string, dto: UpdateUserDto) {
@@ -181,7 +173,63 @@ export class UsersService {
     });
   }
 
-  private generateTempPassword(): string {
-    return `Temp${Math.random().toString(36).slice(2, 12)}!`;
+  private generatePassword(): string {
+    // 16 hex chars + suffix = readable strong password
+    return `Qa${randomBytes(8).toString('hex')}!`;
+  }
+
+  async inviteUser(tenantId: string, dto: InviteUserDto) {
+    const existing = await this.db.user.findUnique({
+      where: { tenantId_email: { tenantId, email: dto.email } },
+    });
+    if (existing) {
+      throw new ConflictException({
+        code: 'USER_ALREADY_EXISTS',
+        message: 'User with this email already exists',
+      });
+    }
+
+    const tenant = await this.db.tenant.findUniqueOrThrow({
+      where: { id: tenantId },
+      select: { plan: true },
+    });
+    const limits = PLAN_LIMITS[tenant.plan as PlanType];
+    if (limits && limits.users !== 999_999) {
+      const currentCount = await this.db.user.count({
+        where: { tenantId, status: { not: 'INACTIVE' } },
+      });
+      if (currentCount >= limits.users) {
+        throw new BadRequestException({
+          code: 'PLAN_LIMIT_EXCEEDED',
+          message: `User limit of ${limits.users} reached on ${tenant.plan} plan.`,
+        });
+      }
+    }
+
+    const user = await this.db.user.create({
+      data: {
+        tenantId,
+        email: dto.email,
+        name: dto.name,
+        role: dto.role,
+        passwordHash: '',
+        status: 'INVITED',
+      },
+      select: { id: true, email: true, name: true, role: true, status: true, createdAt: true },
+    });
+
+    const invitePayload: JwtPayload = {
+      sub: user.id,
+      tenantId,
+      role: dto.role as UserRole,
+      type: 'invite',
+    };
+    const env = getEnv();
+    const inviteToken = this.jwtService.sign(invitePayload, {
+      secret: env.JWT_SECRET,
+      expiresIn: '7d',
+    });
+
+    return { user, inviteToken };
   }
 }

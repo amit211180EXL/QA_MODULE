@@ -6,6 +6,7 @@ import { getMasterClient } from '@qa/prisma-master';
 import { createTenantClient } from '@qa/prisma-tenant';
 import { getEnv, loadEnv } from '@qa/config';
 import { encrypt } from '../common/utils/encryption.util';
+import { renderTemplate } from '../notify/notify.service';
 import { TenantProvisionJobPayload, QUEUE_NAMES } from '@qa/shared';
 import { resolve } from 'path';
 
@@ -182,18 +183,32 @@ async function handleProvision(job: Job<TenantProvisionJobPayload>) {
 
   console.log(`[provision] Tenant ${tenantId} is now ACTIVE`);
 
-  // TODO: enqueue notify:send[tenant_ready]
+  // Notify admin that the workspace is ready (best-effort — non-fatal)
+  const adminUser = await masterDb.user.findUnique({
+    where: { id: adminUserId },
+    select: { email: true, name: true, tenant: { select: { name: true } } },
+  });
+  if (adminUser) {
+    const { text } = renderTemplate('tenant_ready', {
+      adminName: adminUser.name,
+      tenantName: adminUser.tenant?.name ?? '',
+      loginUrl: `${env.API_URL.replace('/api', '')}/login`,
+    });
+    // Log the notification in all environments (SMTP send would go here)
+    console.log(`[provision] tenant_ready notification for ${adminUser.email}:\n${text}`);
+  }
 }
 
 export function startProvisionWorker() {
   const env = getEnv();
+  const concurrency = Math.max(1, env.TENANT_PROVISION_WORKER_CONCURRENCY);
 
   const worker = new Worker<TenantProvisionJobPayload>(
     QUEUE_NAMES.TENANT_PROVISION,
     handleProvision,
     {
       connection: { host: env.REDIS_HOST, port: env.REDIS_PORT, password: env.REDIS_PASSWORD },
-      concurrency: 2,
+      concurrency,
     },
   );
 

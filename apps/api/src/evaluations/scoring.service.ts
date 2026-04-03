@@ -26,7 +26,9 @@ export class ScoringService {
     sections: FormSection[],
     strategy: ScoringStrategy,
   ): ScoreResult {
-    const { passMark, scale, roundingPolicy } = strategy;
+    const passMark = strategy.passMark ?? 70;
+    const scale = strategy.scale ?? 100;
+    const roundingPolicy = strategy.roundingPolicy;
 
     // Build lookup maps
     const questionsBySection = new Map<string, FormQuestion[]>();
@@ -50,7 +52,7 @@ export class ScoringService {
       for (const q of qs) {
         const answer = answers[q.key];
         if (!answer) continue;
-        const normalized = this.normalizeAnswer(answer.value, q);
+        const normalized = this.normalizeAnswer(answer.value, q, scale);
         sectionRaw += (normalized / scale) * q.weight;
       }
 
@@ -83,24 +85,47 @@ export class ScoringService {
     };
   }
 
-  private normalizeAnswer(value: unknown, q: FormQuestion): number {
+  private normalizeAnswer(value: unknown, q: FormQuestion, scale: number): number {
     switch (q.type) {
-      case 'rating':
-        return typeof value === 'number' ? Math.min(Math.max(value, 0), q.validation?.max ?? 5) : 0;
+      case 'rating': {
+        if (typeof value !== 'number') return 0;
+        const min = q.validation?.min ?? 0;
+        const max = q.validation?.max ?? 5;
+        return this.scaleValue(value, min, max, scale);
+      }
       case 'boolean':
-        return value === true || value === 1 || value === 'yes' ? (q.validation?.max ?? 1) : 0;
+        return value === true || value === 1 || value === 'yes' || value === 'true' ? scale : 0;
       case 'select':
-      case 'multiselect':
+      case 'multiselect': {
         // Numeric value embedding in option value like "3/5"
-        if (typeof value === 'number') return value;
+        if (typeof value === 'number') {
+          if (q.validation?.max !== undefined || q.validation?.min !== undefined) {
+            return this.scaleValue(value, q.validation?.min ?? 0, q.validation?.max ?? scale, scale);
+          }
+          return value;
+        }
         if (typeof value === 'string') {
           const parsed = parseFloat(value);
-          return isNaN(parsed) ? 0 : parsed;
+          if (isNaN(parsed)) return 0;
+          if (q.validation?.max !== undefined || q.validation?.min !== undefined) {
+            return this.scaleValue(parsed, q.validation?.min ?? 0, q.validation?.max ?? scale, scale);
+          }
+          return parsed;
         }
         return 0;
+      }
       default:
         return 0;
     }
+  }
+
+  private scaleValue(value: number, min: number, max: number, scale: number): number {
+    if (max <= min) {
+      return Math.min(Math.max(value, 0), scale);
+    }
+
+    const clamped = Math.min(Math.max(value, min), max);
+    return ((clamped - min) / (max - min)) * scale;
   }
 
   private applyRounding(value: number, policy: ScoringStrategy['roundingPolicy']): number {

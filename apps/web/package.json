@@ -10,20 +10,24 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.6.0",
     "@qa/shared": "workspace:*",
     "@tanstack/react-query": "^5.40.0",
     "@tanstack/react-query-devtools": "^5.40.0",
     "axios": "^1.7.2",
     "clsx": "^2.1.1",
+    "framer-motion": "^11.18.0",
+    "js-cookie": "^3.0.5",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^0.395.0",
     "next": "^14.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.1",
-    "@hookform/resolvers": "^3.6.0",
-    "zod": "^3.23.8",
+    "recharts": "^3.8.1",
     "tailwind-merge": "^2.3.0",
-    "lucide-react": "^0.395.0",
-    "js-cookie": "^3.0.5"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/js-cookie": "^3.0.6",

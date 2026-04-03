@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, develop]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   NODE_VERSION: '20'
 
@@ -161,4 +165,236 @@ jobs:
       - name: Run master DB migrations
         run: pnpm --filter @qa/prisma-master migrate:deploy
       - name: Run E2E tests
-        run: pnpm test:e2e
+        run: |
+          set -o pipefail
+          pnpm test:e2e 2>&1 | tee e2e.log
+      - name: Seed master DB for smoke
+        run: pnpm --filter @qa/prisma-master db:seed
+      - name: Provision dev tenant for smoke
+        run: node scripts/dev-provision.cjs dev-tenant
+      - name: Build API for smoke
+        run: pnpm --filter @qa/api build
+      - name: Start API for smoke
+        run: |
+          nohup pnpm --filter @qa/api start > api-smoke.log 2>&1 &
+          echo $! > api-smoke.pid
+      - name: Wait for API readiness
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/v1/health >/dev/null; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become ready in time"
+          exit 1
+      - name: Run deep smoke checks
+        run: pnpm smoke:auth:queues
+      - name: Dump API smoke logs on failure
+        if: failure()
+        run: |
+          if [ -f api-smoke.log ]; then
+            echo "--- api-smoke.log ---"
+            cat api-smoke.log
+          fi
+      - name: Upload integration logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs
+          path: |
+            e2e.log
+            api-smoke.log
+          if-no-files-found: warn
+      - name: Stop API smoke process
+        if: always()
+        run: |
+          if [ -f api-smoke.pid ]; then
+            kill "$(cat api-smoke.pid)" || true
+          fi
+
+  # ─── Degraded Mode Smoke (Redis Disabled) ──────────────────────────────────
+  integration-redis-off:
+    name: Integration Smoke (Redis Disabled)
+    runs-on: ubuntu-latest
+    needs: [build]
+    services:
+      postgres-master:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: qa_master
+          POSTGRES_USER: qa_master
+          POSTGRES_PASSWORD: masterpass
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      postgres-tenant:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: qa_superuser
+          POSTGRES_PASSWORD: superpass
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      NODE_ENV: test
+      PORT: 3000
+      API_URL: http://localhost:3000
+      MASTER_DATABASE_URL: postgresql://qa_master:masterpass@localhost:5432/qa_master
+      REDIS_ENABLED: 'false'
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      JWT_SECRET: ci_jwt_secret_minimum_32_characters_here
+      JWT_EXPIRES_IN: 15m
+      REFRESH_SECRET: ci_refresh_secret_minimum_32_characters
+      REFRESH_EXPIRES_IN: 30d
+      MASTER_ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      TENANT_DB_HOST: localhost
+      TENANT_DB_PORT: 5433
+      TENANT_DB_SUPERUSER: qa_superuser
+      TENANT_DB_SUPERUSER_PASSWORD: superpass
+      EMAIL_FROM: ci@test.local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma clients
+        run: |
+          pnpm --filter @qa/prisma-master db:generate
+          pnpm --filter @qa/prisma-tenant db:generate
+      - name: Run master DB migrations
+        run: pnpm --filter @qa/prisma-master migrate:deploy
+      - name: Seed master DB for smoke
+        run: pnpm --filter @qa/prisma-master db:seed
+      - name: Provision dev tenant for smoke
+        run: node scripts/dev-provision.cjs dev-tenant
+      - name: Build API for smoke
+        run: pnpm --filter @qa/api build
+      - name: Start API for smoke
+        run: |
+          nohup pnpm --filter @qa/api start > api-smoke-redis-off.log 2>&1 &
+          echo $! > api-smoke-redis-off.pid
+      - name: Wait for API readiness
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/v1/health >/dev/null; then
+              echo "API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become ready in time"
+          exit 1
+      - name: Run degraded smoke checks
+        run: pnpm smoke:auth
+      - name: Dump degraded smoke logs on failure
+        if: failure()
+        run: |
+          if [ -f api-smoke-redis-off.log ]; then
+            echo "--- api-smoke-redis-off.log ---"
+            cat api-smoke-redis-off.log
+          fi
+      - name: Upload degraded smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-redis-off-logs
+          path: api-smoke-redis-off.log
+          if-no-files-found: warn
+      - name: Stop degraded smoke API process
+        if: always()
+        run: |
+          if [ -f api-smoke-redis-off.pid ]; then
+            kill "$(cat api-smoke-redis-off.pid)" || true
+          fi
+
+  # ─── Web Smoke Tests ───────────────────────────────────────────────────────
+  web-smoke:
+    name: Web Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [build]
+    env:
+      API_URL: http://localhost:3000
+      NEXT_PUBLIC_API_URL: /api/v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build shared package
+        run: pnpm --filter @qa/shared build
+      - name: Build web app
+        run: pnpm --filter @qa/web build
+      - name: Start web app
+        run: |
+          nohup pnpm --filter @qa/web start > web-smoke.log 2>&1 &
+          echo $! > web-smoke.pid
+      - name: Wait for web readiness
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:3001/login >/dev/null; then
+              echo "Web is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Web did not become ready in time"
+          exit 1
+      - name: Smoke check public auth routes
+        run: |
+          curl -sS -f -L http://localhost:3001/login >/dev/null
+          curl -sS -f -L http://localhost:3001/signup >/dev/null
+          curl -sS -f -L http://localhost:3001/forgot-password >/dev/null
+      - name: Dump web smoke logs on failure
+        if: failure()
+        run: |
+          if [ -f web-smoke.log ]; then
+            echo "--- web-smoke.log ---"
+            cat web-smoke.log
+          fi
+      - name: Upload web smoke logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-smoke-logs
+          path: web-smoke.log
+          if-no-files-found: warn
+      - name: Stop web smoke process
+        if: always()
+        run: |
+          if [ -f web-smoke.pid ]; then
+            kill "$(cat web-smoke.pid)" || true
+          fi
+
+  # ─── Quality Gate ───────────────────────────────────────────────────────────
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - type-check
+      - test
+      - build
+      - integration
+      - integration-redis-off
+      - web-smoke
+    steps:
+      - name: Confirm all required jobs passed
+        run: echo "All quality checks passed."

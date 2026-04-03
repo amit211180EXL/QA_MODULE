@@ -10,6 +10,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   PORT: z.coerce.number().default(3000),
   API_URL: z.string().url().default('http://localhost:3000'),
+  WEB_URL: z.string().url().default('http://localhost:3001'),
 
   // Master Database
   MASTER_DATABASE_URL: z.string().min(1),
@@ -19,6 +20,19 @@ const envSchema = z.object({
   REDIS_HOST: z.string().default('localhost'),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
+
+  // Queue worker tuning
+  EVAL_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(5),
+  TENANT_PROVISION_WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  AUTOSCALE_EVAL_MIN_REPLICAS: z.coerce.number().int().positive().default(1),
+  AUTOSCALE_EVAL_MAX_REPLICAS: z.coerce.number().int().positive().default(20),
+  AUTOSCALE_EVAL_TARGET_BACKLOG_PER_REPLICA: z.coerce.number().int().positive().default(25),
+  AUTOSCALE_TENANT_PROVISION_MIN_REPLICAS: z.coerce.number().int().positive().default(1),
+  AUTOSCALE_TENANT_PROVISION_MAX_REPLICAS: z.coerce.number().int().positive().default(10),
+  AUTOSCALE_TENANT_PROVISION_TARGET_BACKLOG_PER_REPLICA: z.coerce.number()
+    .int()
+    .positive()
+    .default(5),
 
   // JWT
   JWT_SECRET: z.string().min(32),
@@ -34,6 +48,8 @@ const envSchema = z.object({
   TENANT_DB_PORT: z.coerce.number().default(5432),
   TENANT_DB_SUPERUSER: z.string().min(1),
   TENANT_DB_SUPERUSER_PASSWORD: z.string().min(1),
+  TENANT_READ_DB_HOST: z.string().optional(),
+  TENANT_READ_DB_PORT: z.coerce.number().default(5432),
 
   // Email
   EMAIL_FROM: z.string().email().default('noreply@qa-platform.local'),

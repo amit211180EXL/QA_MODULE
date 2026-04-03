@@ -8,6 +8,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { NotifyModule } from '../notify/notify.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { RolesGuard } from './guards/roles.guard';
         return { secret: env.JWT_SECRET, signOptions: { expiresIn: env.JWT_EXPIRES_IN } };
       },
     }),
+    NotifyModule,
   ],
   controllers: [AuthController],
   providers: [

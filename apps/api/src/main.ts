@@ -7,12 +7,14 @@ import { loadEnv } from '@qa/config';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { RequestIdInterceptor } from './common/interceptors/request-id.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { MetricsInterceptor } from './common/interceptors/metrics.interceptor';
 
 async function bootstrap() {
   const env = loadEnv();
 
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
+    rawBody: true,
   });
 
   // Security
@@ -31,7 +33,11 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-      transformOptions: { enableImplicitConversion: true },
+      transformOptions: {
+        // Disable implicit conversion to avoid corrupting complex types like arrays-of-objects
+        // This was causing sections/questions in FormDefinitionDto to be converted to [[]] 
+        enableImplicitConversion: false,
+      },
     }),
   );
 
@@ -39,7 +45,11 @@ async function bootstrap() {
   app.useGlobalFilters(new HttpExceptionFilter());
 
   // Global interceptors
-  app.useGlobalInterceptors(new RequestIdInterceptor(), new LoggingInterceptor());
+  app.useGlobalInterceptors(
+    new RequestIdInterceptor(),
+    app.get(MetricsInterceptor),
+    new LoggingInterceptor(),
+  );
 
   // Swagger (non-production only)
   if (env.NODE_ENV !== 'production') {

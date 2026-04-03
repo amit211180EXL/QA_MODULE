@@ -46,7 +46,8 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const { data } = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+        const refreshUrl = `${api.defaults.baseURL}/auth/refresh`;
+        const { data } = await axios.post(refreshUrl, {
           refreshToken,
         });
         const newAccess: string = data.data.accessToken;
@@ -56,6 +57,7 @@ api.interceptors.response.use(
         refreshQueue.forEach((cb) => cb(newAccess));
         refreshQueue = [];
 
+        original.headers = original.headers ?? {};
         original.headers.Authorization = `Bearer ${newAccess}`;
         return api(original);
       } catch {

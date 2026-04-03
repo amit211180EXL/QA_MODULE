@@ -52,7 +52,7 @@ export default function AcceptInvitePage() {
 
   if (!token) {
     return (
-      <Alert variant="error">
+      <Alert variant="danger">
         Invalid invite link.{' '}
         <Link href="/login" className="underline">
           Go to sign in

@@ -30,8 +30,39 @@ model Tenant {
   escalationRules     EscalationRule[]
   blindReviewSettings BlindReviewSettings?
   usageMetrics        UsageMetric[]
+  outboundWebhooks    OutboundWebhook[]
+  outboundWebhookDeliveries OutboundWebhookDelivery[]
+  tenantEmailSettings TenantEmailSettings?
 
   @@map("tenants")
+}
+
+// ─── TENANT EMAIL (SMTP) ─────────────────────────────────────────────────────
+
+model TenantEmailSettings {
+  id        String @id @default(cuid())
+  tenantId  String @unique
+  smtpHost  String @default("")
+  smtpPort  Int    @default(587)
+  encryption SmtpEncryption @default(TLS)
+  smtpUser  String @default("")
+  smtpPassEnc String @default("")
+  fromEmail String @default("")
+  fromName  String @default("")
+  notificationsEnabled  Boolean @default(true)
+  forgotPasswordEnabled Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_email_settings")
+}
+
+enum SmtpEncryption {
+  NONE
+  TLS
+  SSL
 }
 
 enum TenantStatus {
@@ -142,6 +173,28 @@ model Invoice {
   @@map("invoices")
 }
 
+model StripeWebhookEvent {
+  id            String                   @id @default(cuid())
+  stripeEventId String                   @unique
+  eventType     String
+  status        StripeWebhookEventStatus @default(PROCESSING)
+  attempts      Int                      @default(1)
+  lastError     String?
+  processedAt   DateTime?
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([eventType, createdAt])
+  @@index([status, createdAt])
+  @@map("stripe_webhook_events")
+}
+
+enum StripeWebhookEventStatus {
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
 enum InvoiceStatus {
   DRAFT
   OPEN
@@ -207,6 +260,61 @@ model BlindReviewSettings {
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@map("blind_review_settings")
+}
+
+// ─── OUTBOUND WEBHOOKS ───────────────────────────────────────────────────────
+// When an evaluation reaches LOCKED/ESCALATED the platform POSTs a signed
+// JSON payload to each active subscription URL for the tenant.
+
+model OutboundWebhook {
+  id         String                @id @default(cuid())
+  tenantId   String
+  url        String
+  secretEnc  String                // AES-256-GCM encrypted HMAC signing secret
+  events     String[]              // e.g. ["evaluation.completed", "evaluation.escalated"]
+  status     OutboundWebhookStatus @default(ACTIVE)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
+  deliveries OutboundWebhookDelivery[]
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("outbound_webhooks")
+}
+
+enum OutboundWebhookStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model OutboundWebhookDelivery {
+  id           String                       @id @default(cuid())
+  webhookId    String
+  tenantId     String
+  event        String
+  payload      Json
+  status       OutboundWebhookDeliveryStatus @default(PENDING)
+  attemptCount Int                          @default(1)
+  httpStatus   Int?
+  errorMessage String?
+  deliveredAt  DateTime?
+  createdAt    DateTime                     @default(now())
+  updatedAt    DateTime                     @updatedAt
+
+  webhook OutboundWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([webhookId, createdAt])
+  @@index([status, createdAt])
+  @@map("outbound_webhook_deliveries")
+}
+
+enum OutboundWebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
 }
 
 // ─── USAGE METRICS ────────────────────────────────────────────────────────────

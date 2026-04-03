@@ -1,4 +1,16 @@
-import { IsBoolean, IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEmail,
+  IsIn,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateEscalationRulesDto {
@@ -36,4 +48,66 @@ export class UpdateBlindReviewDto {
   @IsOptional()
   @IsBoolean()
   hideQAFromVerifier?: boolean;
+}
+
+const SMTP_ENCRYPTION = ['NONE', 'TLS', 'SSL'] as const;
+
+export class UpdateTenantEmailSettingsDto {
+  @ApiPropertyOptional({ example: 'smtp.sendgrid.net' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  smtpHost?: string;
+
+  @ApiPropertyOptional({ example: 587 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(65535)
+  smtpPort?: number;
+
+  @ApiPropertyOptional({ enum: SMTP_ENCRYPTION })
+  @IsOptional()
+  @IsIn(SMTP_ENCRYPTION)
+  encryption?: (typeof SMTP_ENCRYPTION)[number];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  smtpUsername?: string;
+
+  /** Omit to leave unchanged; empty string clears stored password. */
+  @ApiPropertyOptional({ writeOnly: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  smtpPassword?: string;
+
+  @ApiPropertyOptional({ example: 'support@acme.com' })
+  @ValidateIf((o: UpdateTenantEmailSettingsDto) => !!o.smtpHost?.trim())
+  @IsEmail()
+  fromEmail?: string;
+
+  @ApiPropertyOptional({ example: 'Acme QA' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  fromName?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  notificationsEnabled?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  forgotPasswordEnabled?: boolean;
+}
+
+export class SendTestEmailDto {
+  @ApiPropertyOptional({ example: 'you@company.com' })
+  @IsEmail()
+  to!: string;
 }

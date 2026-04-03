@@ -6,7 +6,22 @@
   :root {
     --sidebar-width: 240px;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+  ::selection {
+    @apply bg-primary-200/80 text-slate-900;
+  }
+}
+
+@layer utilities {
+  .text-gradient-brand {
+    @apply bg-gradient-to-r from-slate-900 via-primary-700 to-accent-600 bg-clip-text text-transparent;
+  }
+  .surface-glass {
+    @apply border border-white/40 bg-white/70 shadow-sm backdrop-blur-xl backdrop-saturate-150;
   }
 }

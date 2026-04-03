@@ -1,11 +1,14 @@
+import { AuthChrome } from '@/components/auth/auth-chrome';
+import { AuthBackground } from '@/components/auth/auth-background';
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 to-blue-100 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <span className="text-2xl font-bold text-primary-700">QA Platform</span>
-        </div>
-        <div className="rounded-2xl bg-white p-8 shadow-lg">{children}</div>
+    <div className="relative flex h-[100dvh] max-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-slate-950 px-4 py-3 sm:py-4">
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <AuthBackground />
+      </div>
+      <div className="relative z-20 flex min-h-0 w-full max-w-md flex-1 flex-col justify-center">
+        <AuthChrome>{children}</AuthChrome>
       </div>
     </div>
   );

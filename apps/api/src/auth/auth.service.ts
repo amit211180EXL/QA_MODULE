@@ -16,6 +16,7 @@ import { JwtPayload, UserRole, TenantProvisionJobPayload, QUEUE_NAMES, PlanType 
 import { Queue } from 'bullmq';
 import { SignupDto, LoginDto, ResetPasswordDto, AcceptInviteDto } from './dto/auth.dto';
 import { REDIS_CLIENT } from '../redis/redis.module';
+import { NotifyService } from '../notify/notify.service';
 import Redis from 'ioredis';
 
 const BCRYPT_ROUNDS = 12;
@@ -29,6 +30,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly notifyService: NotifyService,
   ) {
     const env = getEnv();
     if (env.REDIS_ENABLED !== 'false') {
@@ -164,10 +166,39 @@ export class AuthService {
       });
     }
 
+    const now = new Date();
     await this.db.user.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() },
+      data: { lastLoginAt: now },
     });
+
+    // Count monthly active users once per user per month.
+    const periodStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstLoginThisMonth = !user.lastLoginAt || user.lastLoginAt < periodStart;
+    if (firstLoginThisMonth) {
+      const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      await this.db.usageMetric.upsert({
+        where: {
+          tenantId_periodStart_periodEnd: {
+            tenantId: user.tenantId,
+            periodStart,
+            periodEnd,
+          },
+        },
+        create: {
+          tenantId: user.tenantId,
+          periodStart,
+          periodEnd,
+          conversationsProcessed: 0,
+          aiTokensUsed: 0n,
+          aiCostCents: 0,
+          activeUsers: 1,
+        },
+        update: {
+          activeUsers: { increment: 1 },
+        },
+      });
+    }
 
     const { accessToken, refreshToken } = await this.issueTokens(
       user.id,
@@ -248,11 +279,14 @@ export class AuthService {
       await this.redis.set(`pwd_reset:${tokenHash}`, user.id, 'EX', ttl);
     }
 
-    // TODO: enqueue notify:send[password_reset] with reset link
-    // For now log in dev only
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[DEV] Password reset token for ${email}: ${token}`);
-    }
+    const resetUrl = `${env.WEB_URL}/reset-password?token=${token}`;
+
+    this.notifyService
+      .send({ to: email, template: 'password_reset', data: { resetUrl } }, { tenantId: user.tenantId })
+      .catch((err: Error) => {
+        // Non-fatal: log but don't expose to caller (timing-safe response already sent)
+        console.error('[Auth] Failed to send password reset email:', err.message);
+      });
   }
 
   // ─── Reset Password ───────────────────────────────────────────────────────────
@@ -364,11 +398,13 @@ export class AuthService {
     const accessToken = this.jwtService.sign(accessPayload, {
       secret: env.JWT_SECRET,
       expiresIn: env.JWT_EXPIRES_IN,
+      jwtid: randomBytes(16).toString('hex'),
     });
 
     const rawRefresh = this.jwtService.sign(refreshPayload, {
       secret: env.REFRESH_SECRET,
       expiresIn: env.REFRESH_EXPIRES_IN,
+      jwtid: randomBytes(16).toString('hex'),
     });
 
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);

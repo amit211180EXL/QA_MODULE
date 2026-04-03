@@ -55,4 +55,88 @@ export class AnalyticsController {
       new Date(to ?? new Date().toISOString()),
     );
   }
+
+  @Get('question-deviations')
+  @ApiOperation({ summary: 'Most-overridden questions by QA reviewers' })
+  async questionDeviations(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.analyticsService.getQuestionDeviations(
+      user.tenantId,
+      new Date(from ?? new Date(Date.now() - 30 * 24 * 3600_000).toISOString()),
+      new Date(to ?? new Date().toISOString()),
+    );
+  }
+
+  @Get('escalation-stats')
+  @ApiOperation({ summary: 'Escalation counts for the period' })
+  async escalationStats(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.analyticsService.getEscalationStats(
+      user.tenantId,
+      new Date(from ?? new Date(Date.now() - 30 * 24 * 3600_000).toISOString()),
+      new Date(to ?? new Date().toISOString()),
+    );
+  }
+
+  @Get('verifier-overrides')
+  @ApiOperation({ summary: 'Questions most overridden by verifiers (QA vs Verifier)' })
+  async verifierOverrides(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.analyticsService.getVerifierOverrides(
+      user.tenantId,
+      new Date(from ?? new Date(Date.now() - 30 * 24 * 3600_000).toISOString()),
+      new Date(to ?? new Date().toISOString()),
+    );
+  }
+
+  @Get('rejection-reasons')
+  @ApiOperation({ summary: 'Common verifier rejection reasons' })
+  async rejectionReasons(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.analyticsService.getRejectionReasons(
+      user.tenantId,
+      new Date(from ?? new Date(Date.now() - 30 * 24 * 3600_000).toISOString()),
+      new Date(to ?? new Date().toISOString()),
+    );
+  }
+
+  @Get('score-trends')
+  @ApiOperation({ summary: 'Daily avg score + pass rate, plus breakdown by channel' })
+  async scoreTrends(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.analyticsService.getScoreTrends(
+      user.tenantId,
+      new Date(from ?? new Date(Date.now() - 30 * 24 * 3600_000).toISOString()),
+      new Date(to ?? new Date().toISOString()),
+    );
+  }
+
+  @Get('ai-usage-trends')
+  @ApiOperation({ summary: 'Monthly AI token + cost trends from usage metrics' })
+  async aiUsageTrends(
+    @CurrentUser() user: JwtPayload,
+    @Query('from') from: string,
+    @Query('to') to: string,
+  ) {
+    return this.analyticsService.getAiUsageTrends(
+      user.tenantId,
+      new Date(from ?? new Date(Date.now() - 365 * 24 * 3600_000).toISOString()),
+      new Date(to ?? new Date().toISOString()),
+    );
+  }
 }
