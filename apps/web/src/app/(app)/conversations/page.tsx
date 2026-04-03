@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { conversationsApi, formsApi, ConversationListItem } from '@/lib/api';
@@ -8,7 +8,16 @@ import { useDebouncedValue } from '@/lib/use-debounced-value';
 import { Button } from '@/components/ui/button';
 import { Alert } from '@/components/ui/alert';
 import { Topbar } from '@/components/layout/topbar';
-import { Upload, RefreshCw, AlertTriangle } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import {
+  Upload,
+  RefreshCw,
+  AlertTriangle,
+  Search,
+  Inbox,
+  Clock3,
+  CircleCheckBig,
+} from 'lucide-react';
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
@@ -216,6 +225,12 @@ export default function ConversationsPage() {
 
   const items: ConversationListItem[] = data?.items ?? [];
   const pagination = data?.pagination;
+  const statusCounts = useMemo(() => {
+    return items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.status] = (acc[item.status] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [items]);
 
   // ── Detect conversations stuck in PENDING (no published form at upload time) ──
   const { data: pendingData } = useQuery({
@@ -245,26 +260,52 @@ export default function ConversationsPage() {
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
 
       {/* Page header */}
-      <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
-        <div className="flex items-center justify-between bg-gradient-to-r from-slate-50 to-white px-5 py-3">
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Conversations</h1>
-            <p className="text-sm text-slate-500">
-              Upload and track your QA conversation evaluations
+      <div className="mb-5 overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/60 to-primary-50/30 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+        <PageHeader
+          eyebrow="Ingest"
+          title="Conversations"
+          titleGradient
+          description="Upload batches, track QA workflow progress, and jump into transcript details fast."
+          aside={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['conversations'] })}
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Refresh
+              </Button>
+              <Button onClick={() => setShowUpload(true)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Upload Batch
+              </Button>
+            </>
+          }
+        />
+
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <Inbox className="h-3.5 w-3.5 text-primary-600" />
+              Loaded
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{items.length}</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <Clock3 className="h-3.5 w-3.5 text-amber-600" />
+              In Review
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">
+              {(statusCounts.QA_REVIEW ?? 0) + (statusCounts.VERIFIER_REVIEW ?? 0)}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['conversations'] })}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50"
-              title="Refresh"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </button>
-            <Button onClick={() => setShowUpload(true)}>
-              <Upload className="mr-2 h-4 w-4" />
-              Upload
-            </Button>
+          <div className="rounded-2xl border border-slate-200 bg-white/80 p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <CircleCheckBig className="h-3.5 w-3.5 text-emerald-600" />
+              Completed
+            </div>
+            <p className="mt-1 text-2xl font-bold text-slate-900">{statusCounts.COMPLETED ?? 0}</p>
           </div>
         </div>
       </div>
@@ -326,38 +367,55 @@ export default function ConversationsPage() {
       )}
 
       {/* Filter bar */}
-      <div className="mb-4 space-y-2">
-        <input
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          placeholder="Search by external ID, channel, agent, or customer…"
-          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          {STATUSES.map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setStatusFilter(s);
-                setPage(1);
-              }}
-              className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                statusFilter === s
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {s || 'All'}
-            </button>
-          ))}
+      <div className="mb-5 rounded-2xl border border-slate-200 bg-white p-3 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search by external ID, channel, agent, or customer"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-9 py-2.5 text-sm text-slate-800 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/25"
+          />
+        </div>
+        <div className="mt-3 flex gap-2 overflow-x-auto rounded-2xl bg-slate-100/80 p-1.5">
+          {STATUSES.map((s) => {
+            const active = statusFilter === s;
+            const count = s ? (statusCounts[s] ?? 0) : items.length;
+            return (
+              <button
+                key={s}
+                onClick={() => {
+                  setStatusFilter(s);
+                  setPage(1);
+                }}
+                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  active
+                    ? 'bg-white text-primary-700 shadow-sm ring-1 ring-primary-200'
+                    : 'bg-transparent text-slate-600 hover:bg-white/80 hover:text-slate-800'
+                }`}
+              >
+                <span>{s || 'All'}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                    active ? 'bg-primary-100 text-primary-700' : 'bg-slate-200 text-slate-600'
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_38px_rgba(15,23,42,0.08)]">
+        <div className="border-b border-slate-100 bg-gradient-to-r from-white to-slate-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Conversation Stream
+        </div>
         {isPending && items.length === 0 && (
           <div className="flex items-center justify-center py-16 text-sm text-slate-400">
             <div className="mr-2 h-5 w-5 animate-spin rounded-full border-2 border-slate-200 border-t-blue-500" />
@@ -407,13 +465,13 @@ export default function ConversationsPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {items.map((c) => (
-                    <tr key={c.id} className="group transition-colors hover:bg-slate-50/60">
+                    <tr key={c.id} className="group transition-colors hover:bg-primary-50/30">
                       <td className="px-4 py-3">
                         <Link
                           href={`/conversations/${c.id}`}
-                          className="font-mono text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                          className="font-mono text-sm font-semibold text-primary-700 hover:text-primary-900 hover:underline"
                         >
                           {c.externalId ?? c.id.slice(0, 8)}
                         </Link>

@@ -257,20 +257,6 @@ export default function ConversationDetailPage({ params }: { params: { id: strin
               title={conv.channel === 'CALL' ? 'Call Playback & Transcript' : 'Transcript'}
               transcriptHeightClass="max-h-[640px]"
             />
-
-            {/* Metadata (if present) */}
-            {conv.metadata != null && (
-              <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white/90 shadow-md backdrop-blur-sm">
-                <div className="border-b border-slate-100/80 bg-gradient-to-r from-slate-50/90 to-white px-5 py-3.5">
-                  <h3 className="text-sm font-semibold text-slate-800">Raw Metadata</h3>
-                </div>
-                <div className="px-5 pb-5 pt-3">
-                  <pre className="overflow-x-auto rounded-xl bg-slate-950 p-4 text-xs text-slate-300 leading-relaxed">
-                    {JSON.stringify(conv.metadata, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>

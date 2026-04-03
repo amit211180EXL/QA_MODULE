@@ -570,11 +570,11 @@ export function CallReviewPanel({
       ) : (
         <details className="p-4">
           <summary className="cursor-pointer text-sm font-medium text-slate-600 hover:text-slate-900">
-            Unable to render transcript — show raw JSON
+            Unable to render transcript
           </summary>
-          <pre className="mt-2 max-h-64 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-300">
-            {JSON.stringify(content, null, 2)}
-          </pre>
+          <p className="mt-2 text-sm text-slate-500">
+            This conversation format is not supported for transcript preview.
+          </p>
         </details>
       )}
     </section>

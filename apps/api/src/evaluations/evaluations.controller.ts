@@ -20,6 +20,9 @@ import {
   VerifierModifyDto,
   VerifierRejectDto,
   PreviewScoreDto,
+  ManualAssignDto,
+  BulkRoundRobinDto,
+  ReassignDto,
 } from './dto/evaluations.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -237,6 +240,51 @@ export class EvaluationsController {
       user.role,
       body.dismiss ?? false,
       body.note,
+    );
+  }
+
+  // ─── Assignment Endpoints ───────────────────────────────────────────────────
+
+  @Post('assign')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Manually assign an evaluation to a user (admin only)' })
+  async manualAssign(@CurrentUser() user: JwtPayload, @Body() dto: ManualAssignDto) {
+    return this.evaluationsService.manualAssign(
+      user.tenantId,
+      dto.evaluationId,
+      dto.userId,
+      user.sub,
+      user.role,
+    );
+  }
+
+  @Post('assign/round-robin')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Auto-assign unassigned queue items via round-robin (admin only)' })
+  async roundRobinAssign(@CurrentUser() user: JwtPayload, @Body() dto: BulkRoundRobinDto) {
+    return this.evaluationsService.roundRobinAssign(
+      user.tenantId,
+      dto.queueType,
+      user.sub,
+      user.role,
+      dto.limit,
+    );
+  }
+
+  @Post('reassign')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reassign an in-progress evaluation to another user (admin only)' })
+  async reassign(@CurrentUser() user: JwtPayload, @Body() dto: ReassignDto) {
+    return this.evaluationsService.reassign(
+      user.tenantId,
+      dto.evaluationId,
+      dto.newUserId,
+      user.sub,
+      user.role,
+      dto.reason,
     );
   }
 }

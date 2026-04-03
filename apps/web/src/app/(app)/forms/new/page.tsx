@@ -63,7 +63,9 @@ export default function NewFormPage() {
       <div className="mb-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
         <div className="bg-gradient-to-r from-slate-50 to-white px-5 py-3">
           <h1 className="text-xl font-bold text-slate-900">New QA form</h1>
-          <p className="mt-0.5 text-xs text-slate-500">Create the shell first, then add sections and questions in the builder.</p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Create the shell first, then add sections and questions in the builder.
+          </p>
         </div>
 
         <form
@@ -127,5 +129,3 @@ export default function NewFormPage() {
     </div>
   );
 }
-
-

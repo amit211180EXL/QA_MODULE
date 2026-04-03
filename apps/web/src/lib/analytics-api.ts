@@ -74,6 +74,53 @@ export interface AiUsageTrendPoint {
   activeUsers: number;
 }
 
+export interface QaReviewerRow {
+  qaUserId: string | null;
+  totalReviewed: number;
+  avgQaScore: number | null;
+  avgTurnaroundMinutes: number | null;
+}
+
+export interface VerifierReportRow {
+  verifierUserId: string | null;
+  totalVerified: number;
+  totalRejected: number;
+  rejectRate: number;
+  avgVerifierScore: number | null;
+}
+
+export interface ConversationVolumeDay {
+  date: string;
+  conversations: number;
+  evaluations: number;
+}
+
+export interface SlaReportDay {
+  date: string;
+  avgTurnaroundHours: number | null;
+  minTurnaroundHours: number | null;
+  maxTurnaroundHours: number | null;
+  count: number;
+}
+
+export interface SlaReport {
+  summary: { avgTurnaroundHours: number | null; totalCompleted: number };
+  byDay: SlaReportDay[];
+}
+
+export interface FormScoreBucket {
+  label: string;
+  min: number;
+  max: number;
+  count: number;
+}
+
+export interface FormScoreDistribution {
+  formKey: string;
+  formName: string;
+  buckets: FormScoreBucket[];
+}
+
 export const analyticsApi = {
   overview: (from?: Date, to?: Date) => {
     const params = new URLSearchParams();
@@ -151,5 +198,46 @@ export const analyticsApi = {
     if (from) params.set('from', from.toISOString());
     if (to) params.set('to', to.toISOString());
     return api.get<AiUsageTrendPoint[]>(`/analytics/ai-usage-trends?${params}`).then((r) => r.data);
+  },
+
+  qaReviewerPerformance: (from?: Date, to?: Date) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from.toISOString());
+    if (to) params.set('to', to.toISOString());
+    return api
+      .get<QaReviewerRow[]>(`/analytics/qa-reviewer-performance?${params}`)
+      .then((r) => r.data);
+  },
+
+  verifierReport: (from?: Date, to?: Date) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from.toISOString());
+    if (to) params.set('to', to.toISOString());
+    return api.get<VerifierReportRow[]>(`/analytics/verifier-report?${params}`).then((r) => r.data);
+  },
+
+  conversationVolume: (from?: Date, to?: Date) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from.toISOString());
+    if (to) params.set('to', to.toISOString());
+    return api
+      .get<ConversationVolumeDay[]>(`/analytics/conversation-volume?${params}`)
+      .then((r) => r.data);
+  },
+
+  slaReport: (from?: Date, to?: Date) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from.toISOString());
+    if (to) params.set('to', to.toISOString());
+    return api.get<SlaReport>(`/analytics/sla-report?${params}`).then((r) => r.data);
+  },
+
+  formScoreDistribution: (from?: Date, to?: Date) => {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from.toISOString());
+    if (to) params.set('to', to.toISOString());
+    return api
+      .get<FormScoreDistribution[]>(`/analytics/form-score-distribution?${params}`)
+      .then((r) => r.data);
   },
 };

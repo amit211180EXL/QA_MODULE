@@ -157,6 +157,23 @@ export const evaluationsApi = {
 
   getAuditLog: (id: string) =>
     api.get<{ data: AuditLogEntry[] }>(`/evaluations/${id}/audit`).then((r) => r.data.data),
+
+  // ─── Assignment ──────────────────────────────────────────────────────────────
+
+  manualAssign: (evaluationId: string, userId: string) =>
+    api
+      .post<{ data: AssignmentResult }>('/evaluations/assign', { evaluationId, userId })
+      .then((r) => r.data),
+
+  roundRobinAssign: (queueType: string, limit?: number) =>
+    api
+      .post<{ data: RoundRobinResult }>('/evaluations/assign/round-robin', { queueType, limit })
+      .then((r) => r.data),
+
+  reassign: (evaluationId: string, newUserId: string, reason?: string) =>
+    api
+      .post<{ data: ReassignResult }>('/evaluations/reassign', { evaluationId, newUserId, reason })
+      .then((r) => r.data),
 };
 
 // ─── Queue item shapes (workflowQueue rows with nested evaluation) ────────────
@@ -254,4 +271,27 @@ export interface AuditQueueItem {
       createdAt: string;
     } | null;
   };
+}
+
+// ─── Assignment types ───────────────────────────────────────────────────────────
+
+export interface AssignmentResult {
+  evaluationId: string;
+  assignedTo: string;
+  assignedToName: string;
+  assignmentType: 'qa' | 'verifier';
+}
+
+export interface RoundRobinResult {
+  assigned: number;
+  distribution: Array<{ userId: string; name: string; count: number }>;
+  message?: string;
+}
+
+export interface ReassignResult {
+  evaluationId: string;
+  previousUserId: string | null;
+  newUserId: string;
+  newUserName: string;
+  assignmentType: 'qa' | 'verifier';
 }

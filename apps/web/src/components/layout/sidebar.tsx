@@ -19,6 +19,7 @@ import {
   LogOut,
   CreditCard,
   Upload,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/auth-context';
@@ -35,44 +36,76 @@ interface NavItem {
   disabled?: boolean;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Conversations', href: '/conversations', icon: MessageSquare },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    label: 'Upload',
-    href: '/upload',
-    icon: Upload,
-    roles: [UserRole.ADMIN],
-  },
-  { label: 'QA Queue', href: '/qa-queue', icon: CheckSquare, roles: [UserRole.QA, UserRole.ADMIN] },
-  {
-    label: 'Verifier Queue',
-    href: '/verifier-queue',
-    icon: ShieldCheck,
-    roles: [UserRole.VERIFIER, UserRole.ADMIN],
-  },
-  {
-    label: 'Escalation Queue',
-    href: '/escalation-queue',
-    icon: AlertTriangle,
-    roles: [UserRole.VERIFIER, UserRole.ADMIN],
+    title: 'Workspace',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+      { label: 'Conversations', href: '/conversations', icon: MessageSquare },
+      {
+        label: 'Upload',
+        href: '/upload',
+        icon: Upload,
+        roles: [UserRole.ADMIN],
+      },
+    ],
   },
   {
-    label: 'Audit Queue',
-    href: '/audit-queue',
-    icon: ShieldAlert,
-    roles: [UserRole.VERIFIER, UserRole.ADMIN],
+    title: 'Operations',
+    items: [
+      {
+        label: 'QA Queue',
+        href: '/qa-queue',
+        icon: CheckSquare,
+        roles: [UserRole.QA, UserRole.ADMIN],
+      },
+      {
+        label: 'Verifier Queue',
+        href: '/verifier-queue',
+        icon: ShieldCheck,
+        roles: [UserRole.VERIFIER, UserRole.ADMIN],
+      },
+      {
+        label: 'Escalation Queue',
+        href: '/escalation-queue',
+        icon: AlertTriangle,
+        roles: [UserRole.VERIFIER, UserRole.ADMIN],
+      },
+      {
+        label: 'Audit Queue',
+        href: '/audit-queue',
+        icon: ShieldAlert,
+        roles: [UserRole.VERIFIER, UserRole.ADMIN],
+      },
+    ],
   },
-  { label: 'Forms', href: '/forms', icon: FileText, roles: [UserRole.ADMIN] },
   {
-    label: 'Analytics',
-    href: '/analytics',
-    icon: BarChart2,
-    roles: [UserRole.ADMIN],
+    title: 'Insights',
+    items: [
+      { label: 'Analytics', href: '/analytics', icon: BarChart2, roles: [UserRole.ADMIN] },
+      { label: 'Reports', href: '/reports', icon: ClipboardList, roles: [UserRole.ADMIN] },
+      {
+        label: 'Question Scores',
+        href: '/question-scores',
+        icon: ClipboardList,
+        roles: [UserRole.ADMIN],
+      },
+    ],
   },
-  { label: 'Users', href: '/users', icon: Users, roles: [UserRole.ADMIN] },
-  { label: 'Billing', href: '/billing', icon: CreditCard, roles: [UserRole.ADMIN] },
-  { label: 'Settings', href: '/settings', icon: Settings, roles: [UserRole.ADMIN] },
+  {
+    title: 'Configuration',
+    items: [
+      { label: 'Forms', href: '/forms', icon: FileText, roles: [UserRole.ADMIN] },
+      { label: 'Users', href: '/users', icon: Users, roles: [UserRole.ADMIN] },
+      { label: 'Billing', href: '/billing', icon: CreditCard, roles: [UserRole.ADMIN] },
+      { label: 'Settings', href: '/settings', icon: Settings, roles: [UserRole.ADMIN] },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -88,12 +121,20 @@ export function Sidebar() {
   }, []);
 
   // Keep server and first client render identical; apply role filtering after mount.
-  const visibleItems = useMemo(() => {
+  const visibleGroups = useMemo(() => {
     if (!isMounted) {
-      return NAV_ITEMS;
+      return NAV_GROUPS;
     }
-    return NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(role));
+    return NAV_GROUPS.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !item.roles || item.roles.includes(role)),
+    })).filter((group) => group.items.length > 0);
   }, [isMounted, role]);
+
+  const visibleItems = useMemo(
+    () => visibleGroups.flatMap((group) => group.items),
+    [visibleGroups],
+  );
 
   const prefetchNavTarget = useCallback(
     (href: string) => {
@@ -196,89 +237,86 @@ export function Sidebar() {
   }, [visibleItems, pathname]);
 
   return (
-    <aside className="relative flex h-full w-64 flex-col border-r border-slate-200/80 bg-slate-50/85 shadow-[4px_0_24px_-12px_rgba(15,23,42,0.08)] backdrop-blur-xl backdrop-saturate-150">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 w-px bg-gradient-to-b from-transparent via-primary-300/40 to-transparent"
-      />
-      {/* Logo */}
-      <div className="relative flex h-16 shrink-0 items-center gap-3 border-b border-slate-200/70 px-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 via-primary-600 to-accent-600 shadow-md shadow-primary-500/25 ring-2 ring-white/80">
-          <CheckSquare className="h-5 w-5 text-white drop-shadow-sm" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-base font-bold tracking-tight text-slate-900">QA Platform</h1>
-          <p className="text-2xs font-medium text-slate-500">Evaluation Suite</p>
+    <aside className="flex h-full w-64 flex-col border-r border-slate-200 bg-slate-50/70">
+      <div className="shrink-0 border-b border-slate-200 px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600">
+            <CheckSquare className="h-4 w-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="truncate text-sm font-black tracking-tight text-slate-900">QA Platform</h1>
+            <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Evaluation Suite
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Nav — no scroll; items are compact enough to always fit */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-        <p className="mb-3 px-2 text-2xs font-semibold uppercase tracking-widest text-slate-500">
-          Navigation
-        </p>
-        <ul className="space-y-1">
-          {visibleItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <li key={item.href}>
-                <Link
-                  href={item.disabled ? '#' : item.href}
-                  prefetch={!item.disabled}
-                  onMouseEnter={() => {
-                    if (!item.disabled) prefetchNavTarget(item.href);
-                  }}
-                  aria-disabled={item.disabled}
-                  className={cn(
-                    'group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-base ease-smooth',
-                    isActive
-                      ? 'bg-gradient-to-r from-primary-50 to-white text-primary-800 shadow-sm ring-1 ring-primary-200/60'
-                      : 'text-slate-700 hover:bg-white/80 hover:shadow-xs',
-                    item.disabled && 'pointer-events-none opacity-40',
-                  )}
-                >
-                  {isActive && (
-                    <span
-                      aria-hidden
-                      className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-full bg-gradient-to-b from-primary-500 to-accent-500 shadow-sm"
-                    />
-                  )}
-                  <item.icon
-                    className={cn(
-                      'h-5 w-5 shrink-0 transition-transform duration-base ease-smooth group-hover:scale-105',
-                      isActive ? 'text-primary-600' : 'text-slate-500 group-hover:text-slate-700',
-                    )}
-                  />
-                  <span className="truncate flex-1">{item.label}</span>
-                  {item.disabled && (
-                    <span className="ml-auto text-2xs font-semibold text-slate-500">Soon</span>
-                  )}
-                  {isActive && (
-                    <span className="ml-1 h-2 w-2 shrink-0 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(14,165,233,0.6)] motion-safe:animate-pulse" />
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
+        <div className="space-y-3">
+          {visibleGroups.map((group) => (
+            <section key={group.title}>
+              <p className="mb-1.5 px-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                {group.title}
+              </p>
+              <ul className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.disabled ? '#' : item.href}
+                        prefetch={!item.disabled}
+                        onMouseEnter={() => {
+                          if (!item.disabled) prefetchNavTarget(item.href);
+                        }}
+                        aria-disabled={item.disabled}
+                        className={cn(
+                          'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-semibold transition-all duration-base ease-smooth',
+                          isActive
+                            ? 'bg-white text-slate-900 ring-1 ring-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
+                            : 'text-slate-700 hover:bg-white/80 hover:text-slate-900',
+                          item.disabled && 'pointer-events-none opacity-40',
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                            isActive ? 'bg-slate-100 text-slate-700' : 'text-slate-500',
+                          )}
+                        >
+                          <item.icon className="h-4 w-4" />
+                        </span>
+                        <span className="truncate flex-1">{item.label}</span>
+                        {item.disabled && (
+                          <span className="ml-auto rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                            Soon
+                          </span>
+                        )}
+                        {isActive && <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          ))}
+        </div>
       </nav>
 
-      {/* User footer */}
-      <div className="shrink-0 border-t border-slate-200/70 bg-slate-100/40 px-3 py-4 backdrop-blur-sm">
-        <div className="mb-3 flex items-center gap-3 rounded-xl border border-slate-200/60 bg-white/60 px-2 py-2 shadow-xs">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-accent-600 text-xs font-bold text-white shadow-md ring-2 ring-white/90">
+      <div className="shrink-0 border-t border-slate-200 bg-slate-100/70 px-3 py-3">
+        <div className="mb-2 flex items-center gap-2.5 rounded-lg border border-slate-200 bg-white px-2.5 py-2">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-xs font-black text-white">
             {isMounted ? (user?.name?.[0]?.toUpperCase() ?? '?') : '?'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-semibold text-slate-900">
-              {isMounted ? user?.name : '\u00A0'}
-            </p>
+            <p className="truncate text-xs font-bold text-slate-900">{isMounted ? user?.name : '\u00A0'}</p>
             <p className="truncate text-2xs text-slate-500">{isMounted ? user?.email : '\u00A0'}</p>
           </div>
         </div>
         <button
           onClick={logout}
-          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 font-medium transition-all duration-base hover:bg-danger-50 hover:text-danger-700"
+          className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-all duration-base hover:border-danger-200 hover:bg-danger-50 hover:text-danger-700"
         >
           <LogOut className="h-4 w-4" />
           Sign out

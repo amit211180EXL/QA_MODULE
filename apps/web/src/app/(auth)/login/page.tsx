@@ -125,8 +125,6 @@ function LoginPageContent() {
           Create account
         </Link>
       </div>
-
-
     </div>
   );
 }

@@ -414,4 +414,237 @@ export class AnalyticsService {
       }));
     });
   }
+
+  // ── NEW REPORT METHODS ────────────────────────────────────────────────────
+
+  // Per-QA-reviewer: evaluations reviewed, avg QA score, avg turnaround (start→complete).
+  async getQaReviewerPerformance(tenantId: string, from: Date, to: Date) {
+    const key = this.buildCacheKey(tenantId, 'qa_reviewer_performance', from, to);
+    return this.getOrSetCache(key, async () => {
+      const db = await this.getDb(tenantId);
+      const rows = await db.$queryRaw<
+        Array<{
+          qaUserId: string | null;
+          count: bigint;
+          avgQaScore: number | null;
+          avgTurnaroundMs: number | null;
+        }>
+      >`
+        SELECT
+          e."qaUserId",
+          COUNT(*) AS count,
+          AVG(e."qaScore") AS "avgQaScore",
+          AVG(EXTRACT(EPOCH FROM (e."qaCompletedAt" - e."qaStartedAt")) * 1000) AS "avgTurnaroundMs"
+        FROM evaluations e
+        WHERE e."qaUserId" IS NOT NULL
+          AND e."qaCompletedAt" >= ${from}
+          AND e."qaCompletedAt" <= ${to}
+        GROUP BY e."qaUserId"
+        ORDER BY count DESC
+      `;
+      return rows.map((r) => ({
+        qaUserId: r.qaUserId,
+        totalReviewed: Number(r.count),
+        avgQaScore: r.avgQaScore ? Math.round(r.avgQaScore * 10) / 10 : null,
+        avgTurnaroundMinutes: r.avgTurnaroundMs
+          ? Math.round(Number(r.avgTurnaroundMs) / 60000)
+          : null,
+      }));
+    });
+  }
+
+  // Per-verifier: verified count, rejected count, avg verifier score.
+  async getVerifierReport(tenantId: string, from: Date, to: Date) {
+    const key = this.buildCacheKey(tenantId, 'verifier_report', from, to);
+    return this.getOrSetCache(key, async () => {
+      const db = await this.getDb(tenantId);
+      const rows = await db.$queryRaw<
+        Array<{
+          verifierUserId: string | null;
+          verified: bigint;
+          rejected: bigint;
+          avgVerifierScore: number | null;
+        }>
+      >`
+        SELECT
+          e."verifierUserId",
+          COUNT(*) AS verified,
+          SUM(CASE WHEN e."verifierRejectedAt" IS NOT NULL THEN 1 ELSE 0 END) AS rejected,
+          AVG(e."verifierScore") AS "avgVerifierScore"
+        FROM evaluations e
+        WHERE e."verifierUserId" IS NOT NULL
+          AND e."verifierCompletedAt" >= ${from}
+          AND e."verifierCompletedAt" <= ${to}
+        GROUP BY e."verifierUserId"
+        ORDER BY verified DESC
+      `;
+      return rows.map((r) => ({
+        verifierUserId: r.verifierUserId,
+        totalVerified: Number(r.verified),
+        totalRejected: Number(r.rejected),
+        rejectRate:
+          Number(r.verified) > 0
+            ? Math.round((Number(r.rejected) / Number(r.verified)) * 1000) / 10
+            : 0,
+        avgVerifierScore: r.avgVerifierScore
+          ? Math.round(r.avgVerifierScore * 10) / 10
+          : null,
+      }));
+    });
+  }
+
+  // Daily conversation upload count + evaluations created count.
+  async getConversationVolume(tenantId: string, from: Date, to: Date) {
+    const key = this.buildCacheKey(tenantId, 'conversation_volume', from, to);
+    return this.getOrSetCache(key, async () => {
+      const db = await this.getDb(tenantId);
+      const [convRows, evalRows] = await Promise.all([
+        db.$queryRaw<Array<{ date: string; count: bigint }>>`
+          SELECT DATE(c."receivedAt") AS date, COUNT(*) AS count
+          FROM conversations c
+          WHERE c."receivedAt" >= ${from} AND c."receivedAt" <= ${to}
+          GROUP BY DATE(c."receivedAt")
+          ORDER BY date ASC
+        `,
+        db.$queryRaw<Array<{ date: string; count: bigint }>>`
+          SELECT DATE(e."createdAt") AS date, COUNT(*) AS count
+          FROM evaluations e
+          WHERE e."createdAt" >= ${from} AND e."createdAt" <= ${to}
+          GROUP BY DATE(e."createdAt")
+          ORDER BY date ASC
+        `,
+      ]);
+
+      // Merge by date
+      const map: Record<string, { date: string; conversations: number; evaluations: number }> = {};
+      for (const r of convRows) {
+        const d =
+          typeof r.date === 'string' ? r.date : (r.date as Date).toISOString().slice(0, 10);
+        map[d] = { date: d, conversations: Number(r.count), evaluations: 0 };
+      }
+      for (const r of evalRows) {
+        const d =
+          typeof r.date === 'string' ? r.date : (r.date as Date).toISOString().slice(0, 10);
+        if (!map[d]) map[d] = { date: d, conversations: 0, evaluations: 0 };
+        map[d].evaluations = Number(r.count);
+      }
+      return Object.values(map).sort((a, b) => a.date.localeCompare(b.date));
+    });
+  }
+
+  // SLA / turnaround: time from receivedAt → lockedAt per completed evaluation.
+  async getSlaReport(tenantId: string, from: Date, to: Date) {
+    const key = this.buildCacheKey(tenantId, 'sla_report', from, to);
+    return this.getOrSetCache(key, async () => {
+      const db = await this.getDb(tenantId);
+      const rows = await db.$queryRaw<
+        Array<{
+          date: string;
+          avgTurnaroundHours: number | null;
+          minTurnaroundHours: number | null;
+          maxTurnaroundHours: number | null;
+          count: bigint;
+        }>
+      >`
+        SELECT
+          DATE(e."lockedAt") AS date,
+          AVG(EXTRACT(EPOCH FROM (e."lockedAt" - c."receivedAt")) / 3600) AS "avgTurnaroundHours",
+          MIN(EXTRACT(EPOCH FROM (e."lockedAt" - c."receivedAt")) / 3600) AS "minTurnaroundHours",
+          MAX(EXTRACT(EPOCH FROM (e."lockedAt" - c."receivedAt")) / 3600) AS "maxTurnaroundHours",
+          COUNT(*) AS count
+        FROM evaluations e
+        JOIN conversations c ON c.id = e."conversationId"
+        WHERE e."workflowState" = 'LOCKED'
+          AND e."lockedAt" >= ${from}
+          AND e."lockedAt" <= ${to}
+        GROUP BY DATE(e."lockedAt")
+        ORDER BY date ASC
+      `;
+
+      // Overall summary
+      const allTurnarounds = rows.filter((r) => r.avgTurnaroundHours !== null);
+      const totalCount = allTurnarounds.reduce((s, r) => s + Number(r.count), 0);
+      const overallAvg =
+        totalCount > 0
+          ? allTurnarounds.reduce(
+              (s, r) => s + (r.avgTurnaroundHours ?? 0) * Number(r.count),
+              0,
+            ) / totalCount
+          : null;
+
+      return {
+        summary: {
+          avgTurnaroundHours: overallAvg ? Math.round(overallAvg * 10) / 10 : null,
+          totalCompleted: totalCount,
+        },
+        byDay: rows.map((r) => ({
+          date:
+            typeof r.date === 'string' ? r.date : (r.date as Date).toISOString().slice(0, 10),
+          avgTurnaroundHours: r.avgTurnaroundHours
+            ? Math.round(Number(r.avgTurnaroundHours) * 10) / 10
+            : null,
+          minTurnaroundHours: r.minTurnaroundHours
+            ? Math.round(Number(r.minTurnaroundHours) * 10) / 10
+            : null,
+          maxTurnaroundHours: r.maxTurnaroundHours
+            ? Math.round(Number(r.maxTurnaroundHours) * 10) / 10
+            : null,
+          count: Number(r.count),
+        })),
+      };
+    });
+  }
+
+  // Score distribution per form: how many evals fall in each score bucket (0-10,10-20…90-100).
+  async getFormScoreDistribution(tenantId: string, from: Date, to: Date) {
+    const key = this.buildCacheKey(tenantId, 'form_score_distribution', from, to);
+    return this.getOrSetCache(key, async () => {
+      const db = await this.getDb(tenantId);
+      const rows = await db.$queryRaw<
+        Array<{
+          formKey: string;
+          formName: string;
+          bucket: number;
+          count: bigint;
+        }>
+      >`
+        SELECT
+          fd."formKey",
+          fd."name" AS "formName",
+          FLOOR(e."finalScore" / 10) * 10 AS bucket,
+          COUNT(*) AS count
+        FROM evaluations e
+        JOIN form_definitions fd ON fd.id = e."formDefinitionId"
+        WHERE e."workflowState" = 'LOCKED'
+          AND e."finalScore" IS NOT NULL
+          AND e."lockedAt" >= ${from}
+          AND e."lockedAt" <= ${to}
+        GROUP BY fd."formKey", fd."name", bucket
+        ORDER BY fd."formKey", bucket ASC
+      `;
+
+      // Group by form
+      const byForm: Record<
+        string,
+        {
+          formKey: string;
+          formName: string;
+          buckets: { label: string; min: number; max: number; count: number }[];
+        }
+      > = {};
+      for (const r of rows) {
+        if (!byForm[r.formKey]) {
+          byForm[r.formKey] = { formKey: r.formKey, formName: r.formName, buckets: [] };
+        }
+        const min = Math.min(Number(r.bucket), 90);
+        byForm[r.formKey].buckets.push({
+          label: `${min}–${min + 10}%`,
+          min,
+          max: min + 10,
+          count: Number(r.count),
+        });
+      }
+      return Object.values(byForm);
+    });
+  }
 }

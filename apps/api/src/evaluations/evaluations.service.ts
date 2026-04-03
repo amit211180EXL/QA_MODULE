@@ -157,54 +157,78 @@ export class EvaluationsService {
     const db = await this.getDb(tenantId);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { queueType: 'QA_QUEUE' };
+    const where: Record<string, unknown> = {
+      workflowState: { in: [WorkflowState.QA_PENDING, WorkflowState.QA_IN_PROGRESS] },
+    };
     if (search?.trim()) {
       const s = search.trim();
-      where.evaluation = {
-        conversation: {
-          OR: [
-            { externalId: { contains: s, mode: 'insensitive' } },
-            { channel: { contains: s, mode: 'insensitive' } },
-            { agentName: { contains: s, mode: 'insensitive' } },
-            { customerRef: { contains: s, mode: 'insensitive' } },
-          ],
-        },
+      where.conversation = {
+        OR: [
+          { externalId: { contains: s, mode: 'insensitive' } },
+          { channel: { contains: s, mode: 'insensitive' } },
+          { agentName: { contains: s, mode: 'insensitive' } },
+          { customerRef: { contains: s, mode: 'insensitive' } },
+        ],
       };
     }
 
-    const [items, total] = await db.$transaction([
-      db.workflowQueue.findMany({
+    const [rows, total] = await db.$transaction([
+      db.evaluation.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+        orderBy: [{ qaStartedAt: 'desc' }, { createdAt: 'desc' }],
         include: {
-          evaluation: {
+          workflowQueue: {
             select: {
               id: true,
-              workflowState: true,
-              aiScore: true,
-              qaScore: true,
-              verifierRejectReason: true,
-              verifierRejectedAt: true,
-              formDefinitionId: true,
-              formVersion: true,
-              conversation: {
-                select: {
-                  id: true,
-                  channel: true,
-                  agentName: true,
-                  customerRef: true,
-                  receivedAt: true,
-                  externalId: true,
-                },
-              },
+              queueType: true,
+              priority: true,
+              assignedTo: true,
+              dueBy: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          conversation: {
+            select: {
+              id: true,
+              channel: true,
+              agentName: true,
+              customerRef: true,
+              receivedAt: true,
+              externalId: true,
             },
           },
         },
       }),
-      db.workflowQueue.count({ where }),
+      db.evaluation.count({ where }),
     ]);
+
+    const items = rows.map((row) => {
+      const queue = row.workflowQueue;
+      return {
+        id: queue?.id ?? `qa-${row.id}`,
+        evaluationId: row.id,
+        queueType: queue?.queueType ?? 'QA_QUEUE',
+        priority: queue?.priority ?? 5,
+        assignedTo: queue?.assignedTo ?? row.qaUserId ?? null,
+        dueBy: queue?.dueBy ?? null,
+        createdAt: queue?.createdAt ?? row.createdAt,
+        updatedAt: queue?.updatedAt ?? row.updatedAt,
+        evaluation: {
+          id: row.id,
+          workflowState: row.workflowState,
+          aiScore: row.aiScore,
+          qaScore: row.qaScore,
+          verifierRejectReason: row.verifierRejectReason,
+          verifierRejectedAt: row.verifierRejectedAt,
+          formDefinitionId: row.formDefinitionId,
+          formVersion: row.formVersion,
+          conversation: row.conversation,
+        },
+      };
+    });
 
     return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
@@ -215,52 +239,82 @@ export class EvaluationsService {
     const db = await this.getDb(tenantId);
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = { queueType: 'VERIFIER_QUEUE' };
+    const where: Record<string, unknown> = {
+      workflowState: {
+        in: [
+          WorkflowState.QA_COMPLETED,
+          WorkflowState.VERIFIER_PENDING,
+          WorkflowState.VERIFIER_IN_PROGRESS,
+        ],
+      },
+    };
     if (search?.trim()) {
       const s = search.trim();
-      where.evaluation = {
-        conversation: {
-          OR: [
-            { externalId: { contains: s, mode: 'insensitive' } },
-            { channel: { contains: s, mode: 'insensitive' } },
-            { agentName: { contains: s, mode: 'insensitive' } },
-            { customerRef: { contains: s, mode: 'insensitive' } },
-          ],
-        },
+      where.conversation = {
+        OR: [
+          { externalId: { contains: s, mode: 'insensitive' } },
+          { channel: { contains: s, mode: 'insensitive' } },
+          { agentName: { contains: s, mode: 'insensitive' } },
+          { customerRef: { contains: s, mode: 'insensitive' } },
+        ],
       };
     }
 
-    const [items, total] = await db.$transaction([
-      db.workflowQueue.findMany({
+    const [rows, total] = await db.$transaction([
+      db.evaluation.findMany({
         where,
         skip,
         take: limit,
-        orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+        orderBy: [{ verifierStartedAt: 'desc' }, { createdAt: 'desc' }],
         include: {
-          evaluation: {
+          workflowQueue: {
             select: {
               id: true,
-              workflowState: true,
-              aiScore: true,
-              qaScore: true,
-              formDefinitionId: true,
-              formVersion: true,
-              conversation: {
-                select: {
-                  id: true,
-                  channel: true,
-                  agentName: true,
-                  customerRef: true,
-                  receivedAt: true,
-                  externalId: true,
-                },
-              },
+              queueType: true,
+              priority: true,
+              assignedTo: true,
+              dueBy: true,
+              createdAt: true,
+              updatedAt: true,
+            },
+          },
+          conversation: {
+            select: {
+              id: true,
+              channel: true,
+              agentName: true,
+              customerRef: true,
+              receivedAt: true,
+              externalId: true,
             },
           },
         },
       }),
-      db.workflowQueue.count({ where }),
+      db.evaluation.count({ where }),
     ]);
+
+    const items = rows.map((row) => {
+      const queue = row.workflowQueue;
+      return {
+        id: queue?.id ?? `verifier-${row.id}`,
+        evaluationId: row.id,
+        queueType: queue?.queueType ?? 'VERIFIER_QUEUE',
+        priority: queue?.priority ?? 5,
+        assignedTo: queue?.assignedTo ?? row.verifierUserId ?? null,
+        dueBy: queue?.dueBy ?? null,
+        createdAt: queue?.createdAt ?? row.createdAt,
+        updatedAt: queue?.updatedAt ?? row.updatedAt,
+        evaluation: {
+          id: row.id,
+          workflowState: row.workflowState,
+          aiScore: row.aiScore,
+          qaScore: row.qaScore,
+          formDefinitionId: row.formDefinitionId,
+          formVersion: row.formVersion,
+          conversation: row.conversation,
+        },
+      };
+    });
 
     return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
@@ -343,9 +397,15 @@ export class EvaluationsService {
           qaStartedAt: now,
         },
       }),
-      db.workflowQueue.updateMany({
+      db.workflowQueue.upsert({
         where: { evaluationId: id },
-        data: { assignedTo: userId },
+        create: {
+          evaluationId: id,
+          queueType: 'QA_QUEUE',
+          assignedTo: userId,
+          priority: 5,
+        },
+        update: { queueType: 'QA_QUEUE', assignedTo: userId },
       }),
       db.auditLog.create({
         data: {
@@ -585,9 +645,15 @@ export class EvaluationsService {
           verifierStartedAt: now,
         },
       }),
-      db.workflowQueue.updateMany({
+      db.workflowQueue.upsert({
         where: { evaluationId: id },
-        data: { assignedTo: userId },
+        create: {
+          evaluationId: id,
+          queueType: 'VERIFIER_QUEUE',
+          assignedTo: userId,
+          priority: 5,
+        },
+        update: { queueType: 'VERIFIER_QUEUE', assignedTo: userId },
       }),
       db.auditLog.create({
         data: {
@@ -1260,6 +1326,374 @@ export class EvaluationsService {
     ]);
 
     return { id: auditCaseId, status, resolvedAt: now.toISOString() };
+  }
+
+  // ─── Manual Assignment (Admin only) ─────────────────────────────────────────
+
+  async manualAssign(
+    tenantId: string,
+    evaluationId: string,
+    targetUserId: string,
+    actorId: string,
+    actorRole: string,
+  ) {
+    const db = await this.getDb(tenantId);
+    const masterDb = getMasterClient();
+
+    // Validate target user exists, is ACTIVE, and belongs to the same tenant
+    const targetUser = await masterDb.user.findFirst({
+      where: { id: targetUserId, tenantId, status: 'ACTIVE' },
+      select: { id: true, role: true, name: true },
+    });
+    if (!targetUser) {
+      throw new BadRequestException({
+        code: 'INVALID_TARGET_USER',
+        message: 'Target user is not found, inactive, or does not belong to this tenant',
+      });
+    }
+
+    const ev = await db.evaluation.findUnique({
+      where: { id: evaluationId },
+      include: { workflowQueue: true },
+    });
+    if (!ev) {
+      throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    }
+
+    // Determine valid states for assignment based on target user role
+    const isQaAssignment = targetUser.role === 'QA' || targetUser.role === 'ADMIN';
+    const isVerifierAssignment = targetUser.role === 'VERIFIER' || targetUser.role === 'ADMIN';
+
+    const qaAssignableStates = [WorkflowState.QA_PENDING, WorkflowState.QA_IN_PROGRESS];
+    const verifierAssignableStates = [
+      WorkflowState.QA_COMPLETED,
+      WorkflowState.VERIFIER_PENDING,
+      WorkflowState.VERIFIER_IN_PROGRESS,
+    ];
+
+    const canAssignAsQa = isQaAssignment && qaAssignableStates.includes(ev.workflowState as WorkflowState);
+    const canAssignAsVerifier = isVerifierAssignment && verifierAssignableStates.includes(ev.workflowState as WorkflowState);
+
+    if (!canAssignAsQa && !canAssignAsVerifier) {
+      throw new ConflictException({
+        code: 'INVALID_ASSIGNMENT',
+        message: `Cannot assign user with role ${targetUser.role} to evaluation in ${ev.workflowState} state`,
+      });
+    }
+
+    const now = new Date();
+    const previousAssignee = ev.workflowQueue?.assignedTo ?? null;
+
+    if (canAssignAsQa) {
+      await db.$transaction([
+        db.evaluation.update({
+          where: { id: evaluationId },
+          data: {
+            workflowState: WorkflowState.QA_IN_PROGRESS,
+            qaUserId: targetUserId,
+            qaStartedAt: ev.qaStartedAt ?? now,
+          },
+        }),
+        db.workflowQueue.upsert({
+          where: { evaluationId },
+          create: { evaluationId, queueType: 'QA_QUEUE', assignedTo: targetUserId, priority: 5 },
+          update: { assignedTo: targetUserId },
+        }),
+        db.auditLog.create({
+          data: {
+            evaluationId,
+            entityType: 'evaluation',
+            entityId: evaluationId,
+            action: 'manual_assign',
+            actorId,
+            actorRole,
+            metadata: {
+              assignedTo: targetUserId,
+              assignedToName: targetUser.name,
+              previousAssignee,
+              assignmentType: 'qa',
+            } as never,
+          },
+        }),
+      ]);
+    } else {
+      await db.$transaction([
+        db.evaluation.update({
+          where: { id: evaluationId },
+          data: {
+            workflowState: WorkflowState.VERIFIER_IN_PROGRESS,
+            verifierUserId: targetUserId,
+            verifierStartedAt: ev.verifierStartedAt ?? now,
+          },
+        }),
+        db.workflowQueue.upsert({
+          where: { evaluationId },
+          create: { evaluationId, queueType: 'VERIFIER_QUEUE', assignedTo: targetUserId, priority: 5 },
+          update: { assignedTo: targetUserId },
+        }),
+        db.auditLog.create({
+          data: {
+            evaluationId,
+            entityType: 'evaluation',
+            entityId: evaluationId,
+            action: 'manual_assign',
+            actorId,
+            actorRole,
+            metadata: {
+              assignedTo: targetUserId,
+              assignedToName: targetUser.name,
+              previousAssignee,
+              assignmentType: 'verifier',
+            } as never,
+          },
+        }),
+      ]);
+    }
+
+    return {
+      evaluationId,
+      assignedTo: targetUserId,
+      assignedToName: targetUser.name,
+      assignmentType: canAssignAsQa ? 'qa' : 'verifier',
+    };
+  }
+
+  // ─── Round-Robin Auto-Assignment (Admin only) ────────────────────────────
+
+  async roundRobinAssign(
+    tenantId: string,
+    queueType: string,
+    actorId: string,
+    actorRole: string,
+    limit?: number,
+  ) {
+    const db = await this.getDb(tenantId);
+    const masterDb = getMasterClient();
+
+    // Validate queue type
+    const validTypes = ['QA_QUEUE', 'VERIFIER_QUEUE'];
+    if (!validTypes.includes(queueType)) {
+      throw new BadRequestException({
+        code: 'INVALID_QUEUE_TYPE',
+        message: `Queue type must be one of: ${validTypes.join(', ')}`,
+      });
+    }
+
+    // Get ACTIVE users with the appropriate role
+    const targetRole = queueType === 'QA_QUEUE' ? 'QA' : 'VERIFIER';
+    const eligibleUsers = await masterDb.user.findMany({
+      where: { tenantId, status: 'ACTIVE', role: { in: [targetRole, 'ADMIN'] } },
+      select: { id: true, name: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (eligibleUsers.length === 0) {
+      throw new BadRequestException({
+        code: 'NO_ELIGIBLE_USERS',
+        message: `No active ${targetRole} users available for assignment`,
+      });
+    }
+
+    // Get unassigned queue items
+    const unassigned = await db.workflowQueue.findMany({
+      where: { queueType: queueType as any, assignedTo: null },
+      orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+      take: limit ?? 1000,
+      select: { id: true, evaluationId: true },
+    });
+
+    if (unassigned.length === 0) {
+      return { assigned: 0, message: 'No unassigned items in queue' };
+    }
+
+    // Get current workload counts per user to find the least-loaded starting point
+    const currentCounts = await db.workflowQueue.groupBy({
+      by: ['assignedTo'],
+      where: { queueType: queueType as any, assignedTo: { not: null } },
+      _count: { _all: true },
+    });
+    const loadMap = new Map<string, number>();
+    for (const u of eligibleUsers) loadMap.set(u.id, 0);
+    for (const c of currentCounts) {
+      if (c.assignedTo && loadMap.has(c.assignedTo)) {
+        loadMap.set(c.assignedTo, c._count._all);
+      }
+    }
+
+    // Sort users by current load (ascending) for fair distribution
+    const sortedUsers = [...eligibleUsers].sort(
+      (a, b) => (loadMap.get(a.id) ?? 0) - (loadMap.get(b.id) ?? 0),
+    );
+
+    const isQa = queueType === 'QA_QUEUE';
+    const workflowState = isQa ? WorkflowState.QA_IN_PROGRESS : WorkflowState.VERIFIER_IN_PROGRESS;
+    const now = new Date();
+    const assignments: Array<{ evaluationId: string; userId: string; userName: string }> = [];
+
+    // Distribute round-robin
+    for (let i = 0; i < unassigned.length; i++) {
+      const item = unassigned[i];
+      const user = sortedUsers[i % sortedUsers.length];
+      assignments.push({ evaluationId: item.evaluationId, userId: user.id, userName: user.name });
+    }
+
+    // Batch update in a transaction
+    await db.$transaction([
+      ...assignments.map((a) =>
+        db.workflowQueue.update({
+          where: { evaluationId: a.evaluationId },
+          data: { assignedTo: a.userId },
+        }),
+      ),
+      ...assignments.map((a) =>
+        db.evaluation.update({
+          where: { id: a.evaluationId },
+          data: isQa
+            ? { workflowState, qaUserId: a.userId, qaStartedAt: now }
+            : { workflowState, verifierUserId: a.userId, verifierStartedAt: now },
+        }),
+      ),
+      db.auditLog.create({
+        data: {
+          entityType: 'workflow_queue',
+          entityId: queueType,
+          action: 'round_robin_assign',
+          actorId,
+          actorRole,
+          metadata: {
+            queueType,
+            totalAssigned: assignments.length,
+            userDistribution: sortedUsers.map((u) => ({
+              userId: u.id,
+              name: u.name,
+              count: assignments.filter((a) => a.userId === u.id).length,
+            })),
+          } as never,
+        },
+      }),
+    ]);
+
+    return {
+      assigned: assignments.length,
+      distribution: sortedUsers.map((u) => ({
+        userId: u.id,
+        name: u.name,
+        count: assignments.filter((a) => a.userId === u.id).length,
+      })),
+    };
+  }
+
+  // ─── Reassign (Admin only — for on-leave / offline users) ─────────────────
+
+  async reassign(
+    tenantId: string,
+    evaluationId: string,
+    newUserId: string,
+    actorId: string,
+    actorRole: string,
+    reason?: string,
+  ) {
+    const db = await this.getDb(tenantId);
+    const masterDb = getMasterClient();
+
+    const newUser = await masterDb.user.findFirst({
+      where: { id: newUserId, tenantId, status: 'ACTIVE' },
+      select: { id: true, role: true, name: true },
+    });
+    if (!newUser) {
+      throw new BadRequestException({
+        code: 'INVALID_TARGET_USER',
+        message: 'Target user is not found, inactive, or does not belong to this tenant',
+      });
+    }
+
+    const ev = await db.evaluation.findUnique({
+      where: { id: evaluationId },
+      include: { workflowQueue: true },
+    });
+    if (!ev) {
+      throw new NotFoundException({ code: 'EVALUATION_NOT_FOUND', message: 'Evaluation not found' });
+    }
+
+    // Only allow reassignment of in-progress evaluations
+    const isQaInProgress = ev.workflowState === WorkflowState.QA_IN_PROGRESS;
+    const isVerifierInProgress = ev.workflowState === WorkflowState.VERIFIER_IN_PROGRESS;
+
+    if (!isQaInProgress && !isVerifierInProgress) {
+      throw new ConflictException({
+        code: 'NOT_IN_PROGRESS',
+        message: `Cannot reassign evaluation in ${ev.workflowState} state. Only QA_IN_PROGRESS or VERIFIER_IN_PROGRESS can be reassigned.`,
+      });
+    }
+
+    const previousUserId = isQaInProgress ? ev.qaUserId : ev.verifierUserId;
+    const now = new Date();
+
+    if (isQaInProgress) {
+      await db.$transaction([
+        db.evaluation.update({
+          where: { id: evaluationId },
+          data: { qaUserId: newUserId, qaStartedAt: now },
+        }),
+        db.workflowQueue.updateMany({
+          where: { evaluationId },
+          data: { assignedTo: newUserId },
+        }),
+        db.auditLog.create({
+          data: {
+            evaluationId,
+            entityType: 'evaluation',
+            entityId: evaluationId,
+            action: 'reassign',
+            actorId,
+            actorRole,
+            metadata: {
+              previousUserId,
+              newUserId,
+              newUserName: newUser.name,
+              reason: reason ?? 'Admin reassignment',
+              assignmentType: 'qa',
+            } as never,
+          },
+        }),
+      ]);
+    } else {
+      await db.$transaction([
+        db.evaluation.update({
+          where: { id: evaluationId },
+          data: { verifierUserId: newUserId, verifierStartedAt: now },
+        }),
+        db.workflowQueue.updateMany({
+          where: { evaluationId },
+          data: { assignedTo: newUserId },
+        }),
+        db.auditLog.create({
+          data: {
+            evaluationId,
+            entityType: 'evaluation',
+            entityId: evaluationId,
+            action: 'reassign',
+            actorId,
+            actorRole,
+            metadata: {
+              previousUserId,
+              newUserId,
+              newUserName: newUser.name,
+              reason: reason ?? 'Admin reassignment',
+              assignmentType: 'verifier',
+            } as never,
+          },
+        }),
+      ]);
+    }
+
+    return {
+      evaluationId,
+      previousUserId,
+      newUserId,
+      newUserName: newUser.name,
+      assignmentType: isQaInProgress ? 'qa' : 'verifier',
+    };
   }
 }
 

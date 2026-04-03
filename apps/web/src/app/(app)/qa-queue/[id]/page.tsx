@@ -51,7 +51,12 @@ function normalizeAnswer(value: unknown, question: FormQuestion, scale: number):
     case 'multiselect':
       if (typeof value === 'number') {
         if (question.validation?.max !== undefined || question.validation?.min !== undefined) {
-          return scaleValue(value, question.validation?.min ?? 0, question.validation?.max ?? scale, scale);
+          return scaleValue(
+            value,
+            question.validation?.min ?? 0,
+            question.validation?.max ?? scale,
+            scale,
+          );
         }
         return value;
       }
@@ -59,7 +64,12 @@ function normalizeAnswer(value: unknown, question: FormQuestion, scale: number):
         const parsed = parseFloat(value);
         if (Number.isNaN(parsed)) return 0;
         if (question.validation?.max !== undefined || question.validation?.min !== undefined) {
-          return scaleValue(parsed, question.validation?.min ?? 0, question.validation?.max ?? scale, scale);
+          return scaleValue(
+            parsed,
+            question.validation?.min ?? 0,
+            question.validation?.max ?? scale,
+            scale,
+          );
         }
         return parsed;
       }
@@ -84,7 +94,10 @@ function computeScorePreview(
     const sectionQuestions = questions.filter((question) => question.sectionId === section.id);
     if (!sectionQuestions.length) continue;
 
-    const totalQuestionWeight = sectionQuestions.reduce((sum, question) => sum + question.weight, 0);
+    const totalQuestionWeight = sectionQuestions.reduce(
+      (sum, question) => sum + question.weight,
+      0,
+    );
     let sectionRaw = 0;
 
     for (const question of sectionQuestions) {
@@ -216,7 +229,7 @@ function QuestionInput({
                     onClick={() => !readonly && onChange(a.value)}
                     className={`flex flex-col items-center rounded-lg px-3 py-2 text-xs transition-all ${
                       value === a.value
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                        ? 'bg-primary-600 text-white shadow-md shadow-primary-300/60'
                         : 'bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed'
                     }`}
                     title={a.label}
@@ -234,7 +247,7 @@ function QuestionInput({
                       onClick={() => !readonly && onChange(i)}
                       className={`h-9 w-9 rounded-lg text-sm font-semibold transition-all ${
                         value === i
-                          ? 'bg-blue-600 text-white shadow-md shadow-blue-200'
+                          ? 'bg-primary-600 text-white shadow-md shadow-primary-300/60'
                           : 'bg-slate-100 text-slate-600 hover:bg-slate-200 disabled:cursor-not-allowed'
                       }`}
                     >
@@ -272,7 +285,7 @@ function QuestionInput({
             disabled={readonly}
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
-            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
+            className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-slate-50"
           >
             <option value="">Select…</option>
             {question.options.map((o) => (
@@ -289,7 +302,7 @@ function QuestionInput({
             value={String(value ?? '')}
             onChange={(e) => onChange(e.target.value)}
             rows={2}
-            className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50"
+            className="block w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-slate-50"
           />
         )}
       </div>
@@ -297,7 +310,9 @@ function QuestionInput({
       {/* Override reason — inline amber footer */}
       {changed && !readonly && onOverrideReasonChange && (
         <div className="flex items-center gap-2 border-t border-amber-100 bg-amber-50/60 px-4 py-2">
-          <span className="shrink-0 text-[11px] font-semibold text-amber-600">Override reason:</span>
+          <span className="shrink-0 text-[11px] font-semibold text-amber-600">
+            Override reason:
+          </span>
           <input
             type="text"
             placeholder="Required…"
@@ -328,22 +343,30 @@ function ScoreCard({
     <div
       className={`rounded-2xl border p-4 shadow-sm transition ${
         active
-          ? 'border-blue-200 bg-gradient-to-br from-blue-50 to-white ring-1 ring-blue-200'
+          ? 'border-primary-200 bg-gradient-to-br from-primary-50 to-white ring-1 ring-primary-200'
           : 'border-slate-200 bg-white hover:shadow-md'
       }`}
     >
       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
       {score !== null ? (
         <>
-          <p className={`mt-1 text-2xl font-black tabular-nums ${
-            passFail === true ? 'text-emerald-600' : passFail === false ? 'text-red-500' : 'text-slate-800'
-          }`}>
+          <p
+            className={`mt-1 text-2xl font-black tabular-nums ${
+              passFail === true
+                ? 'text-emerald-600'
+                : passFail === false
+                  ? 'text-red-500'
+                  : 'text-slate-800'
+            }`}
+          >
             {score.toFixed(1)}%
           </p>
           {passFail !== undefined && passFail !== null && (
-            <p className={`mt-0.5 text-xs font-semibold ${
-              passFail ? 'text-emerald-600' : 'text-red-500'
-            }`}>
+            <p
+              className={`mt-0.5 text-xs font-semibold ${
+                passFail ? 'text-emerald-600' : 'text-red-500'
+              }`}
+            >
               {passFail ? '✓ Pass' : '✗ Fail'}
             </p>
           )}
@@ -426,8 +449,7 @@ export default function EvaluationReviewPage() {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['evaluation', id] });
 
-  const showSubmitting = (message: string) =>
-    setSubmissionNotice({ variant: 'info', message });
+  const showSubmitting = (message: string) => setSubmissionNotice({ variant: 'info', message });
 
   const showSuccessAndRedirect = (message: string, target: string) => {
     setSubmissionNotice({ variant: 'success', message });
@@ -456,7 +478,10 @@ export default function EvaluationReviewPage() {
     onMutate: () => showSubmitting('Submitting QA review...'),
     onSuccess: () => {
       invalidate();
-      showSuccessAndRedirect('QA review submitted successfully. Sending item to the next queue...', '/qa-queue');
+      showSuccessAndRedirect(
+        'QA review submitted successfully. Sending item to the next queue...',
+        '/qa-queue',
+      );
     },
     onError: (error) => showError(error, 'Failed to submit QA review. Please try again.'),
   });
@@ -486,9 +511,13 @@ export default function EvaluationReviewPage() {
     onMutate: () => showSubmitting('Submitting verifier changes...'),
     onSuccess: () => {
       invalidate();
-      showSuccessAndRedirect('Verifier changes saved and approved successfully.', '/verifier-queue');
+      showSuccessAndRedirect(
+        'Verifier changes saved and approved successfully.',
+        '/verifier-queue',
+      );
     },
-    onError: (error) => showError(error, 'Failed to modify and approve evaluation. Please try again.'),
+    onError: (error) =>
+      showError(error, 'Failed to modify and approve evaluation. Please try again.'),
   });
   const verifierRejectMutation = useMutation({
     mutationFn: () => evaluationsApi.verifierReject(id, verifierRejectReason),
@@ -518,9 +547,7 @@ export default function EvaluationReviewPage() {
     return (
       <div className="p-6">
         <Alert variant="danger">
-          {isResolvingLegacyId
-            ? 'Resolving old review link...'
-            : 'Failed to load evaluation. '}
+          {isResolvingLegacyId ? 'Resolving old review link...' : 'Failed to load evaluation. '}
           {!isResolvingLegacyId && detail}
           {!isResolvingLegacyId && status ? ` (HTTP ${status})` : ''}
         </Alert>
@@ -591,17 +618,17 @@ export default function EvaluationReviewPage() {
   const finalDisplayPassFail = derivePassFail(ev.finalScore, passMark, ev.passFail);
 
   return (
-    <div className="mx-auto max-w-[1440px] p-4 md:p-6">
+    <div className="mx-auto max-w-[1440px] space-y-5 p-4 md:p-6">
       {/* Header */}
       <button
         onClick={() => router.back()}
-        className="mb-5 inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-slate-900"
+        className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/90 px-3.5 py-1.5 text-sm font-medium text-slate-600 shadow-sm backdrop-blur-sm transition hover:bg-white hover:text-slate-900"
       >
         <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
 
-      <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_6px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-wrap items-start justify-between gap-4 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+      <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-br from-white via-slate-50/70 to-primary-50/30 shadow-[0_18px_42px_rgba(15,23,42,0.09)]">
+        <div className="flex flex-wrap items-start justify-between gap-4 px-5 py-4">
           <div>
             <h1 className="text-xl font-black tracking-tight text-slate-900 md:text-2xl">
               {ev.formDefinition.name}{' '}
@@ -609,15 +636,22 @@ export default function EvaluationReviewPage() {
                 v{ev.formDefinition.version}
               </span>
             </h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Conv: {ev.conversation.externalId ?? ev.conversationId.slice(0, 8)} ·{' '}
-              {ev.conversation.channel} · {agentDisplay}
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+              <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">
+                Conv: {ev.conversation.externalId ?? ev.conversationId.slice(0, 8)}
+              </span>
+              <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">
+                {ev.conversation.channel}
+              </span>
+              <span className="rounded-full bg-white px-2.5 py-1 ring-1 ring-slate-200">
+                {agentDisplay}
+              </span>
               {hideAgent && (
                 <span className="ml-1.5 inline-flex items-center rounded-full bg-indigo-100 px-1.5 py-0.5 text-xs font-semibold text-indigo-700">
                   blind
                 </span>
               )}
-            </p>
+            </div>
           </div>
           <span
             className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold tracking-wide ${
@@ -647,7 +681,9 @@ export default function EvaluationReviewPage() {
         <ScoreCard label="AI Score" score={ev.aiScore} passFail={aiDisplayPassFail} />
         {hideQAScore ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">QA Score</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+              QA Score
+            </p>
             <p className="mt-1 text-xl font-bold text-slate-200">Hidden</p>
             <p className="mt-0.5 text-xs text-slate-400">Blind review active</p>
           </div>
@@ -670,14 +706,17 @@ export default function EvaluationReviewPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
         <div className="min-w-0 space-y-6">
           {ev.workflowState === 'QA_PENDING' && (
-            <div className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 p-4">
-              <Button isLoading={qaStartMutation.isPending} onClick={() => qaStartMutation.mutate()}>
+            <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50 to-accent-50 p-4 shadow-sm">
+              <Button
+                isLoading={qaStartMutation.isPending}
+                onClick={() => qaStartMutation.mutate()}
+              >
                 Claim for QA Review
               </Button>
             </div>
           )}
           {(ev.workflowState === 'QA_COMPLETED' || ev.workflowState === 'VERIFIER_PENDING') && (
-            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-teal-50 p-4 shadow-sm">
               <Button
                 isLoading={verifierStartMutation.isPending}
                 onClick={() => verifierStartMutation.mutate()}
@@ -687,11 +726,13 @@ export default function EvaluationReviewPage() {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_14px_30px_rgba(15,23,42,0.08)]">
             <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
               <div>
                 <h2 className="text-base font-bold text-slate-900">Evaluation Form</h2>
-                <p className="text-xs text-slate-400">Review each section and submit your adjustments.</p>
+                <p className="text-xs text-slate-400">
+                  Review each section and submit your adjustments.
+                </p>
               </div>
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                 {sections.length} section{sections.length === 1 ? '' : 's'}
@@ -706,10 +747,14 @@ export default function EvaluationReviewPage() {
                   .filter((q: FormQuestion) => isQuestionVisible(q, currentAnswersMap));
                 if (!sqs.length) return null;
                 return (
-                  <div key={section.id} className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 pb-4 pt-3">
+                  <div
+                    key={section.id}
+                    className="rounded-2xl border border-slate-200 bg-slate-50/60 px-4 pb-4 pt-3"
+                  >
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-slate-800">{section.title}</h3>
-                      {typeof (sectionScore ?? scorePreview.sectionScores[section.id]) === 'number' && (
+                      {typeof (sectionScore ?? scorePreview.sectionScores[section.id]) ===
+                        'number' && (
                         <span className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
                           {(sectionScore ?? scorePreview.sectionScores[section.id]).toFixed(1)}
                         </span>
@@ -740,7 +785,7 @@ export default function EvaluationReviewPage() {
           </div>
 
           {isEditable && (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.08)]">
               <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3">
                 <label className="text-sm font-semibold text-slate-700">Feedback (optional)</label>
               </div>
@@ -750,15 +795,18 @@ export default function EvaluationReviewPage() {
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="Add final reviewer notes, coaching points, or context here…"
-                  className="block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
             </div>
           )}
 
           {canEditQA && (
-            <div className="flex justify-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <Button isLoading={qaSubmitMutation.isPending} onClick={() => qaSubmitMutation.mutate()}>
+            <div className="flex justify-end gap-3 rounded-2xl border border-primary-100 bg-gradient-to-r from-primary-50/60 to-white px-4 py-3 shadow-sm">
+              <Button
+                isLoading={qaSubmitMutation.isPending}
+                onClick={() => qaSubmitMutation.mutate()}
+              >
                 <CheckCircle className="mr-2 h-4 w-4" />
                 Submit QA Review
               </Button>
@@ -766,7 +814,7 @@ export default function EvaluationReviewPage() {
           )}
 
           {canEditVerifier && (
-            <div className="space-y-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="space-y-3 overflow-hidden rounded-2xl border border-accent-100 bg-gradient-to-br from-accent-50/30 to-white shadow-sm">
               {showRejectInput ? (
                 <div className="border-b border-red-100 bg-red-50 p-4 space-y-2">
                   <textarea
@@ -827,7 +875,7 @@ export default function EvaluationReviewPage() {
           />
 
           {ev.deviationRecords.length > 0 && (
-            <div className="overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-orange-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
               <div className="border-b border-orange-100 bg-orange-50 px-4 py-3">
                 <h3 className="text-sm font-semibold text-orange-900">Deviations</h3>
               </div>
@@ -849,10 +897,12 @@ export default function EvaluationReviewPage() {
           )}
 
           {auditLog && auditLog.length > 0 && (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
               <details className="group" open>
                 <summary className="flex cursor-pointer list-none items-center gap-2 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-4 py-3 text-sm font-semibold text-slate-800">
-                  <span className="mr-1 text-slate-400 transition-transform group-open:rotate-90">▶</span>
+                  <span className="mr-1 text-slate-400 transition-transform group-open:rotate-90">
+                    ▶
+                  </span>
                   Audit Trail
                   <span className="ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
                     {auditLog.length} event{auditLog.length !== 1 ? 's' : ''}
@@ -860,7 +910,10 @@ export default function EvaluationReviewPage() {
                 </summary>
                 <div className="space-y-2 p-4">
                   {auditLog.map((entry) => (
-                    <div key={entry.id} className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5">
+                    <div
+                      key={entry.id}
+                      className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5"
+                    >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold text-slate-800">
                           {entry.action.replace(/_/g, ' ')}
@@ -888,23 +941,23 @@ export default function EvaluationReviewPage() {
                         })}{' '}
                         · {entry.actorId.slice(0, 8)}
                       </div>
-                        {entry.metadata != null && (
+                      {entry.metadata != null && (
                         <div className="mt-1.5 text-xs text-slate-500">
                           {typeof entry.metadata === 'object'
-                              ? Object.entries(entry.metadata as Record<string, unknown>)
+                            ? Object.entries(entry.metadata as Record<string, unknown>)
                                 .map(([k, v]) => `${k}: ${String(v)}`)
-                                  .join(', ')
+                                .join(', ')
                             : String(entry.metadata as string | number | boolean)}
                         </div>
                       )}
-                      </div>
-                    ))}
-                  </div>
-                </details>
-              </div>
-            )}
-          </aside>
-        </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )}
+        </aside>
       </div>
-    );
-  }
+    </div>
+  );
+}

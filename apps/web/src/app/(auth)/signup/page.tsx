@@ -125,9 +125,7 @@ export default function SignupPage() {
         />
 
         <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-700 sm:text-sm">
-            Plan
-          </label>
+          <label className="mb-1 block text-xs font-semibold text-slate-700 sm:text-sm">Plan</label>
           <select
             className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs transition-all focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             {...register('plan')}
@@ -136,9 +134,7 @@ export default function SignupPage() {
             <option value={PlanType.PRO}>Pro</option>
             <option value={PlanType.ENTERPRISE}>Enterprise</option>
           </select>
-          {errors.plan && (
-            <p className="mt-1 text-sm text-danger-600">{errors.plan.message}</p>
-          )}
+          {errors.plan && <p className="mt-1 text-sm text-danger-600">{errors.plan.message}</p>}
         </div>
 
         <Button

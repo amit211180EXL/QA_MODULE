@@ -96,13 +96,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // Clear local state immediately so the UI responds instantly.
     const refreshToken = Cookies.get('refresh_token');
-    if (refreshToken) {
-      await authApi.logout(refreshToken).catch(() => null);
-    }
     clearTokens();
     setUser(null);
     writeCachedUser(null);
+    // Invalidate the session on the server in the background (fire-and-forget).
+    if (refreshToken) {
+      authApi.logout(refreshToken).catch(() => null);
+    }
   }, []);
 
   return (

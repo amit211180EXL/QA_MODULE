@@ -46,12 +46,14 @@ export function AuthBackground() {
           <div
             key={i}
             className="absolute h-1 w-1 rounded-full bg-white/30 animate-[rise_var(--dur)_ease-in_infinite_var(--delay)]"
-            style={{
-              left: `${15 + i * 14}%`,
-              bottom: '-4px',
-              '--dur': `${8 + i * 2}s`,
-              '--delay': `${i * 1.5}s`,
-            } as React.CSSProperties}
+            style={
+              {
+                left: `${15 + i * 14}%`,
+                bottom: '-4px',
+                '--dur': `${8 + i * 2}s`,
+                '--delay': `${i * 1.5}s`,
+              } as React.CSSProperties
+            }
           />
         ))}
       </div>

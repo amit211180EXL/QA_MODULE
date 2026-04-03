@@ -96,3 +96,44 @@ export class PreviewScoreDto {
   @IsObject()
   answers!: Record<string, unknown>;
 }
+
+// ─── Assignment DTOs ──────────────────────────────────────────────────────────
+
+export class ManualAssignDto {
+  @ApiProperty({ description: 'Evaluation ID to assign' })
+  @IsString()
+  evaluationId!: string;
+
+  @ApiProperty({ description: 'Target user ID to assign to' })
+  @IsString()
+  userId!: string;
+}
+
+export class BulkRoundRobinDto {
+  @ApiProperty({ description: 'Queue type: QA_QUEUE or VERIFIER_QUEUE' })
+  @IsString()
+  queueType!: string;
+
+  @ApiPropertyOptional({ description: 'Max items to distribute (default: all unassigned)' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(1000)
+  limit?: number;
+}
+
+export class ReassignDto {
+  @ApiProperty({ description: 'Evaluation ID to reassign' })
+  @IsString()
+  evaluationId!: string;
+
+  @ApiProperty({ description: 'New user ID to reassign to' })
+  @IsString()
+  newUserId!: string;
+
+  @ApiPropertyOptional({ description: 'Reason for reassignment' })
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
