@@ -64,6 +64,11 @@ function parseArgs(argv) {
 }
 
 function decrypt(ciphertextB64) {
+  // Plaintext placeholder written by seed.ts before dev:provision runs
+  if (ciphertextB64.startsWith('PLAINTEXT:')) {
+    return ciphertextB64.slice('PLAINTEXT:'.length);
+  }
+
   const key = Buffer.from(MASTER_ENCRYPTION_KEY, 'hex');
   const data = Buffer.from(ciphertextB64, 'base64');
 

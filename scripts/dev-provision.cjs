@@ -110,7 +110,8 @@ async function provisionTenant(tenant, adminUserId) {
   // 3. Run Prisma migrations on tenant DB
   const tenantDbUrl = `postgresql://${dbUser}:${encodeURIComponent(dbPassword)}@${TENANT_DB_HOST}:${TENANT_DB_PORT}/${dbName}`;
   console.log('  Applying Prisma migrations...');
-  const prismaBin = resolve(ROOT, 'packages/prisma-tenant/node_modules/.bin/prisma.cmd');
+  const isWindows = process.platform === 'win32';
+  const prismaBin = resolve(ROOT, `packages/prisma-tenant/node_modules/.bin/prisma${isWindows ? '.cmd' : ''}`);
   execSync(
     `"${prismaBin}" migrate deploy --schema="${TENANT_MIGRATIONS_PATH}/schema.prisma"`,
     {
