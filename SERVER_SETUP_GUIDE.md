@@ -210,6 +210,34 @@ pnpm dev:provision
 
 This creates the tenant-specific PostgreSQL database, runs tenant migrations, and seeds a starter form template.
 
+### 8a. Recovery: `qa_tenant_dev` missing / auth failed
+
+If you get errors like `Authentication failed for user qa_tenant_dev` or `database qa_tenant_dev does not exist`, the master tenant record exists but the tenant DB/user was not provisioned on PostgreSQL.
+
+Run this recovery flow:
+
+```bash
+# 1) Ensure env is loaded from repo root and key exists
+grep MASTER_ENCRYPTION_KEY apps/api/.env
+
+# 2) Re-provision the specific tenant (works even when not in PROVISIONING status)
+pnpm dev:provision dev-tenant
+
+# 3) Seed sample channel conversations for that tenant
+node scripts/seed-channel-conversations.cjs --tenant=dev-tenant --count=3
+```
+
+If PostgreSQL role/database are still missing, create them manually and rerun tenant migrations:
+
+```bash
+sudo -u postgres psql
+CREATE ROLE qa_tenant_dev LOGIN PASSWORD 'devpassword';
+CREATE DATABASE qa_tenant_dev OWNER qa_tenant_dev;
+\q
+
+pnpm --dir packages/prisma-tenant exec prisma migrate deploy --schema=prisma/schema.prisma
+```
+
 ---
 
 ## 9. Seed Sample Conversations (optional)
