@@ -1,110 +1,62 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
 import React from 'react';
 
+/**
+ * Thin progress bar shown at the top of the page during route transitions.
+ * Detects navigation by watching pathname changes.
+ */
 function RouteTransitionLoaderComponent() {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const pathname = usePathname();
   const [progress, setProgress] = useState(0);
+  const [visible, setVisible] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevPath = useRef(pathname);
 
+  // Start the bar whenever the pathname changes.
   useEffect(() => {
-    let progressInterval: NodeJS.Timeout;
+    if (pathname === prevPath.current) return;     // same page, skip
+    prevPath.current = pathname;
 
-    const handleStart = () => {
-      setIsLoading(true);
-      setProgress(10);
+    // Clear any running animation
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
-      // Increment progress gradually
-      progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 90) return 90;
-          return prev + Math.random() * 30;
-        });
-      }, 200);
-    };
+    setVisible(true);
+    setProgress(15);
 
-    const handleComplete = () => {
+    intervalRef.current = setInterval(() => {
+      setProgress((p) => (p >= 90 ? 90 : p + Math.random() * 25));
+    }, 180);
+
+    // Navigation is complete by the time this effect fires, so finish quickly.
+    const done = setTimeout(() => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
       setProgress(100);
-      clearInterval(progressInterval);
-      
-      // Hide loader after animation completes
       setTimeout(() => {
-        setIsLoading(false);
+        setVisible(false);
         setProgress(0);
-      }, 300);
-    };
-
-    // Listen to route change events
-    const timer = setInterval(() => {
-      // This is a fallback; real detection happens via page visibility or navigation timing
-    }, 100);
-
-    // Use popstate for back/forward navigation
-    window.addEventListener('popstate', handleStart);
-
-    // For Link navigation, we need to detect it differently
-    // We'll use MutationObserver on the document
-    const observer = new MutationObserver(() => {
-      if (document.readyState === 'loading') {
-        handleStart();
-      }
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-nextjs-scroll-focus-boundary'],
-    });
-
-    // Detect navigation completion
-    const handleLoad = () => {
-      handleComplete();
-    };
-
-    window.addEventListener('load', handleLoad);
-    
-    // Also complete when route change completes
-    const originalPush = window.history.pushState;
-    const originalReplace = window.history.replaceState;
-
-    window.history.pushState = function (...args) {
-      handleStart();
-      originalPush.apply(window.history, args);
-      // Complete after a short delay
-      setTimeout(handleComplete, 500);
-      return undefined as any;
-    };
-
-    window.history.replaceState = function (...args) {
-      originalReplace.apply(window.history, args);
-      return undefined as any;
-    };
+      }, 280);
+    }, 120);
 
     return () => {
-      clearInterval(timer);
-      clearInterval(progressInterval);
-      window.removeEventListener('popstate', handleStart);
-      window.removeEventListener('load', handleLoad);
-      observer.disconnect();
+      clearTimeout(done);
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [router]);
+  }, [pathname]);
 
-  if (!isLoading && progress === 0) return null;
-
-  const barStyle = useMemo(
-    () => ({
-      width: `${progress}%`,
-      opacity: isLoading ? 1 : 0,
-    }),
-    [progress, isLoading],
-  );
+  if (!visible && progress === 0) return null;
 
   return (
     <div className="fixed top-0 left-0 right-0 h-1 z-50 pointer-events-none">
       <div
-        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full transition-all duration-300 ease-out shadow-lg"
-        style={barStyle}
+        className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 rounded-full shadow-lg"
+        style={{
+          width: `${progress}%`,
+          opacity: visible ? 1 : 0,
+          transition: 'width 280ms ease-out, opacity 200ms ease-out',
+        }}
       />
     </div>
   );

@@ -52,10 +52,9 @@ const AuthContext = createContext<AuthState & AuthActions>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Seed state from localStorage so the UI renders immediately without a spinner.
-  const [user, setUser] = useState<CurrentUser | null>(() => readCachedUser());
-  // If we already have a cached user, start as not-loading so the app renders instantly.
-  const [isLoading, setIsLoading] = useState(() => !readCachedUser() && typeof window !== 'undefined' && !!Cookies.get('access_token'));
+  // Always start null so SSR and first client render match (no hydration mismatch).
+  const [user, setUser] = useState<CurrentUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     const token = Cookies.get('access_token');
@@ -79,6 +78,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Hydrate from localStorage first (near-instant) then refresh via API.
+    const cached = readCachedUser();
+    if (cached) {
+      setUser(cached);
+      setIsLoading(false);
+    }
     refresh();
   }, [refresh]);
 
