@@ -116,6 +116,48 @@ Top-level payload:
 }
 ```
 
+### Call Recording URL Keys (supported by UI player)
+
+For `CALL` channel, the conversation viewer auto-detects recording URLs from `content` and `metadata`.
+You can provide the URL using any of these keys:
+
+- `recordingUrl`
+- `recordingURL`
+- `recording_url`
+- `audioUrl`
+- `audioURL`
+- `audio_url`
+- `mediaUrl`
+- `mediaURL`
+- `media_url`
+- `callRecordingUrl`
+- `callRecordingURL`
+- `call_recording_url`
+- `recording`
+- `audio`
+- `media`
+
+Recommended key: `recordingUrl`.
+
+Example:
+
+```json
+{
+  "channel": "CALL",
+  "conversations": [
+    {
+      "externalId": "CALL-52001",
+      "content": {
+        "messages": [
+          { "speaker": "agent", "text": "Hello", "ts": "2026-04-04T09:00:00.000Z" }
+        ],
+        "recordingUrl": "https://your-cdn.example.com/audio/CALL-52001.mp3"
+      }
+    }
+  ]
+}
+```
+
 ## SOCIAL
 
 ```json
@@ -180,6 +222,8 @@ Typical errors:
 - If LLM is enabled, workflow starts with AI processing.
 - If LLM is disabled, items go directly to QA queue.
 - Use stable `externalId` values to avoid accidental duplicate pushes.
+- For call playback in browser UI, recording URLs must be publicly reachable by the web app and support CORS.
+- Prefer standard audio extensions (`.mp3`, `.wav`, `.m4a`, `.ogg`, `.webm`) or `data:audio/*` URLs.
 
 ## 7. Bulk Test Data Option
 
