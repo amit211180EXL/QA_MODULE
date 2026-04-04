@@ -2,6 +2,10 @@
 
 Multi-tenant SaaS QA evaluation platform.
 
+## Documentation
+
+- [Conversation Upload Guide (By Channel)](docs/Conversation-Upload-Guide.md)
+
 ## Prerequisites
 
 - Node.js ≥ 20
