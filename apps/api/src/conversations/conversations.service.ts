@@ -9,6 +9,7 @@ import { getEnv } from '@qa/config';
 
 @Injectable()
 export class ConversationsService {
+  private static readonly CHANNEL_SEARCH_VALUES = ['CHAT', 'EMAIL', 'CALL', 'SOCIAL'] as const;
   private readonly masterDb = getMasterClient();
   private readonly evalQueue: Queue<EvalProcessJobPayload> | null = null;
 
@@ -47,6 +48,13 @@ export class ConversationsService {
     return fallback ?? null;
   }
 
+  private parseSearchChannel(value: string) {
+    const normalized = value.trim().toUpperCase();
+    return (ConversationsService.CHANNEL_SEARCH_VALUES as readonly string[]).includes(normalized)
+      ? normalized
+      : null;
+  }
+
   async listConversations(tenantId: string, query: ListConversationsDto) {
     const db = await this.getTenantDb(tenantId);
     const page = query.page ?? 1;
@@ -58,12 +66,16 @@ export class ConversationsService {
     if (query.agentId) where.agentId = query.agentId;
     if (query.search?.trim()) {
       const s = query.search.trim();
-      where.OR = [
+      const orFilters: Array<Record<string, unknown>> = [
         { externalId: { contains: s, mode: 'insensitive' } },
-        { channel: { contains: s, mode: 'insensitive' } },
         { agentName: { contains: s, mode: 'insensitive' } },
         { customerRef: { contains: s, mode: 'insensitive' } },
       ];
+      const searchedChannel = this.parseSearchChannel(s);
+      if (searchedChannel) {
+        orFilters.push({ channel: searchedChannel });
+      }
+      where.OR = orFilters;
     }
 
     const [items, total] = await db.$transaction([

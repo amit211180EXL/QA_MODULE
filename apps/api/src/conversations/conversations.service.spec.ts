@@ -403,6 +403,21 @@ describe('ConversationsService', () => {
         expect.objectContaining({ skip: 0, take: 20 }),
       );
     });
+
+    it('uses enum-safe exact match for channel when search is a channel value', async () => {
+      (mockTenantDb.conversation as Record<string, jest.Mock>).findMany.mockResolvedValue([]);
+      (mockTenantDb.conversation as Record<string, jest.Mock>).count.mockResolvedValue(0);
+
+      await svc.listConversations(TENANT_ID, { page: 1, limit: 20, search: 'chat' });
+
+      expect((mockTenantDb.conversation as Record<string, jest.Mock>).findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([expect.objectContaining({ channel: 'CHAT' })]),
+          }),
+        }),
+      );
+    });
   });
 
   // ─── getConversation ───────────────────────────────────────────────────────
