@@ -30,6 +30,18 @@ Usage
   export QA_PASSWORD=DevAdmin123!
   python scripts/upload_conversations.py --channel EMAIL
 
+    # Use secure password prompt (avoids shell escaping issues)
+    python scripts/upload_conversations.py \
+        --tenant-slug dev-tenant \
+        --email qa.user@dev.local \
+        --prompt-password \
+        --channel CHAT
+
+    # Skip login by passing an existing token
+    python scripts/upload_conversations.py \
+        --access-token <jwt_access_token> \
+        --channel CALL
+
 Supported channels: CHAT | EMAIL | CALL | SOCIAL
 Max 500 conversations per request (API limit).
 
@@ -37,6 +49,7 @@ Dependencies: requests  (pip install requests)
 """
 
 import argparse
+import getpass
 import json
 import os
 import sys
@@ -155,7 +168,14 @@ def login(base_url: str, tenant_slug: str, email: str, password: str) -> str:
         timeout=15,
     )
     if not resp.ok:
-        die(f"Login failed [{resp.status_code}]: {resp.text}")
+        hint = ""
+        if resp.status_code in (401, 403):
+            hint = (
+                " Hint: verify tenant slug, credentials, and account status. "
+                "If your password has shell-special characters, avoid passing it directly "
+                "on CLI and use an interactive prompt or environment variable."
+            )
+        die(f"Login failed [{resp.status_code}]: {resp.text}{hint}")
     body = resp.json()
     token = (body.get("data") or {}).get("accessToken")
     if not token:
@@ -196,8 +216,30 @@ def upload(
         timeout=30,
     )
     if not resp.ok:
-        die(f"Upload failed [{resp.status_code}]: {resp.text}")
+        hint = ""
+        if resp.status_code == 403:
+            hint = " Hint: this user may not have permission in the target tenant."
+        die(f"Upload failed [{resp.status_code}]: {resp.text}{hint}")
     return resp.json()
+
+
+def verify_token(base_url: str, token: str) -> None:
+    """Call /auth/me to confirm token validity and show acting user context."""
+    url = f"{base_url.rstrip('/')}/auth/me"
+    resp = requests.get(
+        url,
+        headers={"Authorization": f"Bearer {token}"},
+        timeout=15,
+    )
+    if not resp.ok:
+        die(f"Token validation failed [{resp.status_code}]: {resp.text}")
+    body = resp.json()
+    user = (body.get("data") or {})
+    log(
+        "Using token for "
+        f"{user.get('email', 'unknown')} "
+        f"(role: {user.get('role', 'unknown')}, tenantId: {user.get('tenantId', 'unknown')})"
+    )
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
@@ -212,6 +254,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--tenant-slug",  default=os.getenv("QA_TENANT_SLUG", ""))
     p.add_argument("--email",        default=os.getenv("QA_EMAIL", ""))
     p.add_argument("--password",     default=os.getenv("QA_PASSWORD", ""))
+    p.add_argument(
+        "--access-token",
+        default=os.getenv("QA_ACCESS_TOKEN", ""),
+        help="Use an existing Bearer token (skips login step).",
+    )
+    p.add_argument(
+        "--prompt-password",
+        action="store_true",
+        help="Prompt for password securely (recommended when password contains special chars).",
+    )
     p.add_argument(
         "--channel",
         choices=["CHAT", "EMAIL", "CALL", "SOCIAL"],
@@ -232,14 +284,23 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    # ── validate required credentials ────────────────────────────────────────
-    missing = [f for f, v in [
-        ("--tenant-slug / QA_TENANT_SLUG", args.tenant_slug),
-        ("--email / QA_EMAIL",             args.email),
-        ("--password / QA_PASSWORD",       args.password),
-    ] if not v]
-    if missing:
-        die("Missing required arguments:\n  " + "\n  ".join(missing))
+    # ── credentials: either token mode OR login mode ────────────────────────
+    token = args.access_token.strip()
+    if not token:
+        if args.prompt_password and not args.password:
+            args.password = getpass.getpass("Password: ")
+
+        missing = [f for f, v in [
+            ("--tenant-slug / QA_TENANT_SLUG", args.tenant_slug),
+            ("--email / QA_EMAIL",             args.email),
+            ("--password / QA_PASSWORD",       args.password),
+        ] if not v]
+        if missing:
+            die(
+                "Missing required arguments for login mode:\n  "
+                + "\n  ".join(missing)
+                + "\nOr pass --access-token / QA_ACCESS_TOKEN to skip login."
+            )
 
     # ── load conversations ────────────────────────────────────────────────────
     if args.file:
@@ -256,7 +317,10 @@ def main() -> None:
         log(f"Using built-in sample payload for channel {args.channel}.")
 
     # ── auth + upload ─────────────────────────────────────────────────────────
-    token  = login(args.base_url, args.tenant_slug, args.email, args.password)
+    if token:
+        verify_token(args.base_url, token)
+    else:
+        token = login(args.base_url, args.tenant_slug, args.email, args.password)
     result = upload(args.base_url, token, args.channel, conversations)
 
     # ── report ────────────────────────────────────────────────────────────────
