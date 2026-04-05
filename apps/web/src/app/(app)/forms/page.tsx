@@ -79,6 +79,7 @@ export default function FormsPage() {
     queryKey: ['forms', page, debouncedSearch],
     queryFn: () => formsApi.list({ page, limit: 20, search: debouncedSearch || undefined }),
     placeholderData: keepPreviousData,
+    refetchOnMount: 'always',
   });
 
   const forms: FormListItem[] = data?.items ?? [];

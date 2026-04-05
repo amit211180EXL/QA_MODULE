@@ -6,12 +6,14 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { formsApi } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Alert } from '@/components/ui/alert';
 import { Topbar } from '@/components/layout/topbar';
 import { ArrowLeft } from 'lucide-react';
+import { isAxiosError } from 'axios';
 
 const schema = z.object({
   formKey: z
@@ -25,7 +27,9 @@ type FormValues = z.infer<typeof schema>;
 
 export default function NewFormPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [channels, setChannels] = useState<string[]>(['CHAT']);
+  const [channelError, setChannelError] = useState<string | null>(null);
 
   const {
     register,
@@ -38,17 +42,38 @@ export default function NewFormPage() {
       formsApi.create({
         ...data,
         channels,
-        scoringStrategy: { type: 'WEIGHTED', passMark: 70 },
+        scoringStrategy: {
+          type: 'weighted_sections',
+          passMark: 70,
+          scale: 100,
+          roundingPolicy: 'round',
+        },
         sections: [],
         questions: [],
       }),
-    onSuccess: (form) => {
+    onSuccess: async (form) => {
+      await queryClient.invalidateQueries({ queryKey: ['forms'] });
       router.push(`/forms/${form.id}`);
     },
   });
 
   const toggleChannel = (ch: string) =>
-    setChannels((prev) => (prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch]));
+    setChannels((prev) => {
+      const next = prev.includes(ch) ? prev.filter((c) => c !== ch) : [...prev, ch];
+      if (next.length > 0) setChannelError(null);
+      return next;
+    });
+
+  const getCreateErrorMessage = () => {
+    if (!createMutation.error) return 'Failed to create form — please try again.';
+    if (isAxiosError(createMutation.error)) {
+      const apiMessage = createMutation.error.response?.data as
+        | { error?: { message?: string } }
+        | undefined;
+      return apiMessage?.error?.message ?? 'Failed to create form — please try again.';
+    }
+    return 'Failed to create form — please try again.';
+  };
 
   return (
     <div className="max-w-3xl pb-2">
@@ -69,7 +94,14 @@ export default function NewFormPage() {
         </div>
 
         <form
-          onSubmit={handleSubmit((d) => createMutation.mutate(d))}
+          onSubmit={handleSubmit((d) => {
+            if (channels.length === 0) {
+              setChannelError('Select at least one channel');
+              return;
+            }
+            setChannelError(null);
+            createMutation.mutate(d);
+          })}
           noValidate
           className="space-y-4 px-5 py-4"
         >
@@ -110,10 +142,11 @@ export default function NewFormPage() {
                 </button>
               ))}
             </div>
+            {channelError && <p className="mt-1 text-xs text-red-600">{channelError}</p>}
           </div>
 
           {createMutation.isError && (
-            <Alert variant="danger">Failed to create form — please try again.</Alert>
+            <Alert variant="danger">{getCreateErrorMessage()}</Alert>
           )}
 
           <div className="flex justify-end gap-2 pt-2">

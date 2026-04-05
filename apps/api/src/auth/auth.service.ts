@@ -6,6 +6,7 @@ import {
   ForbiddenException,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -24,6 +25,7 @@ const PASSWORD_RESET_TTL_S = 15 * 60; // 15 minutes
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly db = getMasterClient();
   private readonly provisionQueue: Queue | null = null;
 
@@ -127,6 +129,10 @@ export class AuthService {
   // ─── Login ────────────────────────────────────────────────────────────────────
 
   async login(dto: LoginDto, tenantSlug?: string) {
+    this.logger.log(
+      `Login attempt email=${dto.email} tenantSlug=${tenantSlug ?? 'none'}`,
+    );
+
     // Find user across tenants by email (unique per tenant, so we need slug context)
     // In practice, login form captures email; tenant resolved from subdomain/slug header
     const user = await this.db.user.findFirst({
@@ -138,6 +144,9 @@ export class AuthService {
     });
 
     if (!user) {
+      this.logger.warn(
+        `Login failed reason=INVALID_CREDENTIALS email=${dto.email} tenantSlug=${tenantSlug ?? 'none'} step=user_lookup`,
+      );
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password',
@@ -145,6 +154,9 @@ export class AuthService {
     }
 
     if (user.status === 'INACTIVE') {
+      this.logger.warn(
+        `Login blocked reason=ACCOUNT_SUSPENDED email=${dto.email} tenantId=${user.tenantId} step=user_inactive`,
+      );
       throw new ForbiddenException({
         code: 'ACCOUNT_SUSPENDED',
         message: 'Account is deactivated',
@@ -152,6 +164,9 @@ export class AuthService {
     }
 
     if (user.tenant.status === 'SUSPENDED' || user.tenant.status === 'CANCELLED') {
+      this.logger.warn(
+        `Login blocked reason=ACCOUNT_SUSPENDED email=${dto.email} tenantId=${user.tenantId} tenantStatus=${user.tenant.status}`,
+      );
       throw new ForbiddenException({
         code: 'ACCOUNT_SUSPENDED',
         message: 'Tenant account is suspended',
@@ -160,6 +175,9 @@ export class AuthService {
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
+      this.logger.warn(
+        `Login failed reason=INVALID_CREDENTIALS email=${dto.email} tenantId=${user.tenantId} step=password_check`,
+      );
       throw new UnauthorizedException({
         code: 'INVALID_CREDENTIALS',
         message: 'Invalid email or password',
@@ -204,6 +222,10 @@ export class AuthService {
       user.id,
       user.tenantId,
       user.role as UserRole,
+    );
+
+    this.logger.log(
+      `Login success userId=${user.id} email=${user.email} role=${user.role} tenantId=${user.tenantId}`,
     );
 
     return {

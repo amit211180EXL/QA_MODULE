@@ -64,7 +64,8 @@ function normalizeAnswer(value: unknown): string {
   if (typeof value === 'boolean') return value ? 'Yes' : 'No';
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '—';
   if (typeof value === 'string') return value.trim() ? value : '—';
-  if (Array.isArray(value)) return value.length ? value.map((v) => normalizeAnswer(v)).join(', ') : '—';
+  if (Array.isArray(value))
+    return value.length ? value.map((v) => normalizeAnswer(v)).join(', ') : '—';
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }
@@ -309,7 +310,9 @@ export default function QuestionScoresPage() {
                 <div>
                   <h3 className="text-base font-bold text-slate-900">Form Question-wise Scores</h3>
                   <p className="text-xs text-slate-500">
-                    {convoQ.data?.externalId ?? convoQ.data?.id.slice(0, 8) ?? 'Loading conversation...'}
+                    {convoQ.data?.externalId ??
+                      convoQ.data?.id.slice(0, 8) ??
+                      'Loading conversation...'}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -329,7 +332,9 @@ export default function QuestionScoresPage() {
 
               <div className="max-h-[calc(90vh-72px)] overflow-auto p-0">
                 {convoQ.isPending && (
-                  <p className="px-5 py-10 text-center text-sm text-slate-500">Loading conversation…</p>
+                  <p className="px-5 py-10 text-center text-sm text-slate-500">
+                    Loading conversation…
+                  </p>
                 )}
 
                 {!convoQ.isPending && !evaluationId && (
@@ -339,7 +344,9 @@ export default function QuestionScoresPage() {
                 )}
 
                 {evaluationId && evalQ.isPending && (
-                  <p className="px-5 py-10 text-center text-sm text-slate-500">Loading evaluation…</p>
+                  <p className="px-5 py-10 text-center text-sm text-slate-500">
+                    Loading evaluation…
+                  </p>
                 )}
 
                 {evaluationId && evalQ.data && (
@@ -394,7 +401,10 @@ export default function QuestionScoresPage() {
                         ))}
                         {touchedRows.length === 0 && (
                           <tr>
-                            <td colSpan={5} className="px-4 py-10 text-center text-sm text-slate-500">
+                            <td
+                              colSpan={5}
+                              className="px-4 py-10 text-center text-sm text-slate-500"
+                            >
                               No touched questions for this evaluation.
                             </td>
                           </tr>

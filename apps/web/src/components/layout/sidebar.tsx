@@ -244,7 +244,9 @@ export function Sidebar() {
             <CheckSquare className="h-4 w-4 text-white" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-black tracking-tight text-slate-900">QA Platform</h1>
+            <h1 className="truncate text-sm font-black tracking-tight text-slate-900">
+              QA Platform
+            </h1>
             <p className="text-2xs font-semibold uppercase tracking-[0.16em] text-slate-500">
               Evaluation Suite
             </p>
@@ -310,7 +312,9 @@ export function Sidebar() {
             {isMounted ? (user?.name?.[0]?.toUpperCase() ?? '?') : '?'}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-slate-900">{isMounted ? user?.name : '\u00A0'}</p>
+            <p className="truncate text-xs font-bold text-slate-900">
+              {isMounted ? user?.name : '\u00A0'}
+            </p>
             <p className="truncate text-2xs text-slate-500">{isMounted ? user?.email : '\u00A0'}</p>
           </div>
         </div>

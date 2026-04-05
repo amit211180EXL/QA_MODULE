@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, Logger } from '@nestjs/common';
 import { getMasterClient } from '@qa/prisma-master';
 import { Queue } from 'bullmq';
 import { TenantConnectionPool } from '../tenant/tenant-connection-pool.service';
@@ -10,6 +10,7 @@ import { getEnv } from '@qa/config';
 @Injectable()
 export class ConversationsService {
   private static readonly CHANNEL_SEARCH_VALUES = ['CHAT', 'EMAIL', 'CALL', 'SOCIAL'] as const;
+  private readonly logger = new Logger(ConversationsService.name);
   private readonly masterDb = getMasterClient();
   private readonly evalQueue: Queue<EvalProcessJobPayload> | null = null;
 
@@ -197,13 +198,21 @@ export class ConversationsService {
       }>;
     },
   ) {
+    this.logger.log(
+      `Upload request received tenantId=${tenantId} channel=${payload.channel} count=${payload.conversations?.length ?? 0}`,
+    );
+
     if (!payload.conversations?.length) {
+      this.logger.warn(`Upload rejected tenantId=${tenantId} reason=EMPTY_PAYLOAD`);
       throw new BadRequestException({
         code: 'EMPTY_PAYLOAD',
         message: 'No conversations provided',
       });
     }
     if (payload.conversations.length > 500) {
+      this.logger.warn(
+        `Upload rejected tenantId=${tenantId} reason=BATCH_TOO_LARGE count=${payload.conversations.length}`,
+      );
       throw new BadRequestException({
         code: 'BATCH_TOO_LARGE',
         message: 'Maximum 500 conversations per upload',
@@ -220,12 +229,18 @@ export class ConversationsService {
       const used = await this.usageMeter.getMonthlyConversationCount(tenantId);
       const remaining = limits.conversationsPerMonth - used;
       if (remaining <= 0) {
+        this.logger.warn(
+          `Upload rejected tenantId=${tenantId} reason=PLAN_LIMIT_EXCEEDED used=${used} limit=${limits.conversationsPerMonth}`,
+        );
         throw new BadRequestException({
           code: 'PLAN_LIMIT_EXCEEDED',
           message: `Monthly conversation limit of ${limits.conversationsPerMonth} reached. Upgrade your plan to continue.`,
         });
       }
       if (payload.conversations.length > remaining) {
+        this.logger.warn(
+          `Upload rejected tenantId=${tenantId} reason=PLAN_LIMIT_WOULD_EXCEED requested=${payload.conversations.length} remaining=${remaining}`,
+        );
         throw new BadRequestException({
           code: 'PLAN_LIMIT_WOULD_EXCEED',
           message: `This upload would exceed your monthly limit. You have ${remaining} conversations remaining this month.`,
@@ -251,6 +266,9 @@ export class ConversationsService {
       select: { enabled: true },
     });
     const llmEnabled = Boolean(llmConfig?.enabled);
+    this.logger.log(
+      `Upload context tenantId=${tenantId} channel=${payload.channel} activeForm=${activeForm ? `${activeForm.id}@v${activeForm.version}` : 'none'} llmEnabled=${llmEnabled}`,
+    );
 
     const created = await db.$transaction(
       payload.conversations.map((c) =>
@@ -306,9 +324,8 @@ export class ConversationsService {
               { attempts: 3, backoff: { type: 'exponential', delay: 5000 } },
             );
           } catch (queueErr) {
-            console.warn(
-              '[Conversations] Failed to enqueue eval job:',
-              (queueErr as Error).message,
+            this.logger.warn(
+              `Failed to enqueue eval job tenantId=${tenantId} conversationId=${conv.id} error=${(queueErr as Error).message}`,
             );
           }
         } else if (!llmEnabled) {
@@ -329,6 +346,10 @@ export class ConversationsService {
 
     // Record usage asynchronously (don't block response)
     this.usageMeter.recordConversation(tenantId, created.length).catch(() => null);
+
+    this.logger.log(
+      `Upload completed tenantId=${tenantId} channel=${payload.channel} uploaded=${created.length} evaluated=${activeForm ? created.length : 0}`,
+    );
 
     return { uploaded: created.length, evaluated: activeForm ? created.length : 0 };
   }

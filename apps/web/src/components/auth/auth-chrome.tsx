@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { authEase } from '@/components/auth/auth-motion';
 
 const SUBTITLE: Record<string, string> = {
@@ -18,7 +19,14 @@ function normalizeAuthPath(pathname: string) {
 }
 
 export function AuthChrome({ children }: { children: React.ReactNode }) {
-  const pathname = normalizeAuthPath(usePathname() ?? '/login');
+  const rawPathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Keep server and first client render identical to avoid hydration mismatch.
+  const pathname = normalizeAuthPath(mounted ? (rawPathname ?? '/login') : '/login');
   const reduceMotion = useReducedMotion();
   const subtitle = SUBTITLE[pathname] ?? 'Secure access';
   const showSubtitle = subtitle.length > 0;

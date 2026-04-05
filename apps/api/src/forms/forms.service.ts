@@ -5,6 +5,7 @@ import {
   BadRequestException,
   Inject,
 } from '@nestjs/common';
+import { Prisma } from '@qa/prisma-tenant';
 import { getMasterClient } from '@qa/prisma-master';
 import { TenantConnectionPool } from '../tenant/tenant-connection-pool.service';
 import { PLAN_LIMITS, PlanType } from '@qa/shared';
@@ -81,6 +82,13 @@ export class FormsService {
   async createForm(tenantId: string, dto: CreateFormDefinitionDto, userId: string) {
     const db = await this.getDb(tenantId);
 
+    if (!Array.isArray(dto.channels) || dto.channels.length === 0) {
+      throw new BadRequestException({
+        code: 'CHANNEL_REQUIRED',
+        message: 'At least one channel is required',
+      });
+    }
+
     // Plan limit check — count non-archived forms
     const tenant = await this.masterDb.tenant.findUniqueOrThrow({
       where: { id: tenantId },
@@ -99,28 +107,53 @@ export class FormsService {
       }
     }
 
-    // Auto-increment version for this formKey
-    const latest = await db.formDefinition.findFirst({
-      where: { formKey: dto.formKey },
-      orderBy: { version: 'desc' },
-      select: { version: true },
-    });
+    // Retry once for version conflicts caused by concurrent creates with same formKey.
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const latest = await db.formDefinition.findFirst({
+        where: { formKey: dto.formKey },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
 
-    const version = (latest?.version ?? 0) + 1;
+      const version = (latest?.version ?? 0) + 1;
 
-    return db.formDefinition.create({
-      data: {
-        formKey: dto.formKey,
-        version,
-        name: dto.name,
-        description: dto.description,
-        channels: dto.channels as never,
-        scoringStrategy: dto.scoringStrategy as never,
-        sections: dto.sections as never,
-        questions: dto.questions as never,
-        metadata: dto.metadata as never,
-        createdById: userId,
-      },
+      try {
+        return await db.formDefinition.create({
+          data: {
+            formKey: dto.formKey,
+            version,
+            name: dto.name,
+            description: dto.description,
+            channels: dto.channels as never,
+            scoringStrategy: dto.scoringStrategy as never,
+            sections: dto.sections as never,
+            questions: dto.questions as never,
+            metadata: dto.metadata as never,
+            createdById: userId,
+          },
+        });
+      } catch (error) {
+        const isUniqueConflict =
+          error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
+        if (isUniqueConflict && attempt === 0) {
+          continue;
+        }
+
+        if (isUniqueConflict) {
+          throw new ConflictException({
+            code: 'FORM_CREATE_CONFLICT',
+            message: 'Another create request for this form key is in progress. Please retry.',
+          });
+        }
+
+        throw error;
+      }
+    }
+
+    throw new ConflictException({
+      code: 'FORM_CREATE_CONFLICT',
+      message: 'Unable to create form due to a concurrent update. Please retry.',
     });
   }
 
