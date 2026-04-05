@@ -14,6 +14,58 @@ Example base URL:
 
 - Local: `http://localhost:3000/api/v1/conversations/upload`
 
+## 1.1 How to Upload to a Particular Tenant
+
+Conversation upload does **not** take `tenantId` in the URL or body.
+Tenant is resolved from the JWT token.
+
+To target a specific tenant:
+
+1. Login with the tenant slug header: `x-tenant-slug: <tenant-slug>`
+2. Use returned `accessToken` in `Authorization: Bearer <accessToken>`
+3. Call `/conversations/upload`
+
+### Tenant-scoped login example
+
+```bash
+curl -X POST "http://localhost:3000/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -H "x-tenant-slug: acme-tenant" \
+  -d '{
+    "email": "admin@acme.com",
+    "password": "your-password"
+  }'
+```
+
+Then use `data.accessToken` from the login response for upload.
+
+### Tenant upload example
+
+```bash
+curl -X POST "http://localhost:3000/api/v1/conversations/upload" \
+  -H "Authorization: Bearer <acme-tenant-access-token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel": "CHAT",
+    "conversations": [
+      {
+        "externalId": "ACME-CHAT-001",
+        "agentName": "Alice",
+        "customerRef": "cust-77",
+        "content": [
+          { "role": "customer", "text": "Need help", "ts": "2026-04-04T10:00:00.000Z" },
+          { "role": "agent", "text": "Sure", "ts": "2026-04-04T10:00:30.000Z" }
+        ]
+      }
+    ]
+  }'
+```
+
+Notes:
+
+- If the same email exists in multiple tenants, always send `x-tenant-slug` during login.
+- Do not try to pass `tenantId` in upload body; it is ignored by contract.
+
 ## 2. Request Format
 
 Top-level payload:
